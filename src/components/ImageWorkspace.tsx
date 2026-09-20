@@ -18,6 +18,12 @@ const formatNames: Record<ImageFormat, string> = {
   "image/webp": "WebP"
 };
 
+const qualityLevels = [
+  { value: 60, label: "Smaller file" },
+  { value: 80, label: "Balanced" },
+  { value: 95, label: "Best quality" }
+] as const;
+
 export function ImageWorkspace(props: ImageWorkspaceProps) {
   const target = () => outputTarget(props.target);
   const format = () => target().mimeType as ImageFormat;
@@ -25,7 +31,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
     format: format(),
     width: props.source.width,
     height: props.source.height,
-    quality: 85
+    quality: 80
   });
   const [converting, setConverting] = createSignal(false);
   const [result, setResult] = createSignal<{ file: File; url: string }>();
@@ -124,7 +130,19 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
                 </button>
                 <NumberInput label="Output height" value={settings().height} onInput={(value) => updateDimension("height", value)} />
               </div>
-              <Show when={format() === "image/jpeg"}><NumberInput label="JPEG quality" value={settings().quality} min={1} max={100} onInput={(value) => setSettings((current) => ({ ...current, quality: Number(value) }))} /></Show>
+              <Show when={format() !== "image/png"}>
+                <label class="block">
+                  <span class="text-sm text-[#65717f]">Output quality</span>
+                  <select
+                    class="mt-2 min-h-11 w-full rounded-lg border border-[#cbd4de] bg-[#fbfcfd] px-3 font-mono text-base"
+                    aria-label="Output quality"
+                    value={String(settings().quality)}
+                    onChange={(event) => setSettings((current) => ({ ...current, quality: Number(event.currentTarget.value) }))}
+                  >
+                    {qualityLevels.map((level) => <option value={String(level.value)} selected={level.value === settings().quality}>{level.label}</option>)}
+                  </select>
+                </label>
+              </Show>
             </div>
           </div>
         </div>

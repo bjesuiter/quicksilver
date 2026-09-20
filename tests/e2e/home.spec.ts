@@ -312,3 +312,35 @@ test("locks image output dimensions to the source aspect ratio by default", asyn
   await page.getByLabel("Output height").fill("100");
   await expect(page.getByLabel("Output width")).toHaveValue("300");
 });
+
+test("offers named quality levels for JPEG and sends the selected level to its encoder", async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+      (window as Window & { __quicksilverEncoderQuality?: number }).__quicksilverEncoderQuality = typeof quality === "number" ? quality : undefined;
+      return originalToBlob.call(this, callback, type, quality);
+    };
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /JPEG image/ }).click();
+
+  const quality = page.getByLabel("Output quality");
+  await expect(quality).toHaveValue("80");
+  await expect(quality.locator("option")).toHaveText(["Smaller file", "Balanced", "Best quality"]);
+  await quality.selectOption({ label: "Best quality" });
+  await page.getByRole("button", { name: "Convert image" }).click();
+  await expect(page.getByRole("heading", { name: "Image ready" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as Window & { __quicksilverEncoderQuality?: number }).__quicksilverEncoderQuality)).toBe(0.95);
+});
+
+test("shows quality levels for WebP but not lossless PNG", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /PNG image/ }).click();
+  await expect(page.getByLabel("Output quality")).not.toBeVisible();
+
+  await page.getByRole("button", { name: "Change output format" }).click();
+  await page.getByRole("button", { name: /WebP image/ }).click();
+  await expect(page.getByLabel("Output quality")).toBeVisible();
+});

@@ -16,6 +16,18 @@ const extensionFor = (format: ImageFormat) => ({
   "image/webp": "webp"
 })[format];
 
+async function encodeLossyImage(output: PhotonImage, format: "image/jpeg" | "image/webp", quality: number): Promise<Uint8Array> {
+  const canvas = document.createElement("canvas");
+  canvas.width = output.get_width();
+  canvas.height = output.get_height();
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is unavailable");
+  context.putImageData(new ImageData(new Uint8ClampedArray(output.get_raw_pixels()), canvas.width, canvas.height), 0, 0);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, Math.min(1, Math.max(0.01, quality / 100))));
+  if (!blob) throw new Error("Image encoding is unavailable");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
 export async function convertImage(source: SourceImage, settings: ImageConversionSettings): Promise<File> {
   if (!Number.isInteger(settings.width) || !Number.isInteger(settings.height) || settings.width < 1 || settings.height < 1) {
     throw new Error("Enter valid output dimensions.");
@@ -41,11 +53,9 @@ export async function convertImage(source: SourceImage, settings: ImageConversio
       output = photon.resize(input, settings.width, settings.height, photon.SamplingFilter.Lanczos3);
     }
 
-    const bytes = settings.format === "image/jpeg"
-      ? output.get_bytes_jpeg(Math.round(Math.min(100, Math.max(1, settings.quality))))
-      : settings.format === "image/webp"
-        ? output.get_bytes_webp()
-        : output.get_bytes();
+    const bytes = settings.format === "image/png"
+      ? output.get_bytes()
+      : await encodeLossyImage(output, settings.format, settings.quality);
     const baseName = source.file.name.replace(/\.[^.]+$/, "") || "image";
     const fileBytes = new Uint8Array(bytes.byteLength);
     fileBytes.set(bytes);
