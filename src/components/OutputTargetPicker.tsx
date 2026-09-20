@@ -25,7 +25,7 @@ export function OutputTargetPicker(props: OutputTargetPickerProps) {
           </p>
         </div>
         <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onReset}>
-          Choose another
+          Choose another source
         </button>
       </div>
 

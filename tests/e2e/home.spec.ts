@@ -114,6 +114,7 @@ test("asks for an output format after selecting a video", async ({ page }) => {
   await page.getByLabel("Choose media").setInputFiles(sampleVideo);
 
   await expect(page.getByRole("heading", { name: "Choose an output format" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose another source" })).toBeVisible();
   await expect(page.getByRole("button", { name: /H\.264 video/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /VP9 video/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /AV1 video/ })).toBeVisible();
@@ -121,6 +122,7 @@ test("asks for an output format after selecting a video", async ({ page }) => {
 
   await page.getByRole("button", { name: /VP9 video/ }).click();
   await expect(page.getByText("VP9 video · WebM · efficient for the web")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose another source" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Convert VP9 video" })).toBeEnabled();
 });
 
