@@ -9,7 +9,7 @@ export type OutputStorage = {
 };
 
 export async function createOutputStorage(estimatedBytes: number): Promise<OutputStorage> {
-  if (estimatedBytes < IN_MEMORY_LIMIT || !navigator.storage?.getDirectory) {
+  if (estimatedBytes < IN_MEMORY_LIMIT) {
     const target = new BufferTarget();
     return {
       target,
@@ -19,6 +19,10 @@ export async function createOutputStorage(estimatedBytes: number): Promise<Outpu
       },
       cleanup: async () => undefined
     };
+  }
+
+  if (!navigator.storage?.getDirectory) {
+    throw new Error("This output is too large for in-memory conversion, and this browser does not provide temporary file storage.");
   }
 
   const estimate = await navigator.storage.estimate();

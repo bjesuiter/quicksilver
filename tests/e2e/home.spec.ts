@@ -12,6 +12,29 @@ test("offers a private local video picker", async ({ page }) => {
   await expect(page.getByText("Your video stays on this device.")).toBeVisible();
 });
 
+test("publishes a project-path web manifest", async ({ page, request }) => {
+  await page.goto(".");
+  const manifestPath = await page.locator('link[rel="manifest"]').getAttribute("href");
+
+  expect(manifestPath).toBe("/quicksilver/manifest.webmanifest");
+  const response = await request.get(new URL(manifestPath!, page.url()).toString());
+  expect(response.ok()).toBe(true);
+  const manifest = await response.json();
+  expect(manifest.start_url).toBe("/quicksilver/");
+  expect(manifest.scope).toBe("/quicksilver/");
+  expect(manifest.icons).toEqual(
+    expect.arrayContaining([expect.objectContaining({ sizes: "192x192" }), expect.objectContaining({ sizes: "512x512" })])
+  );
+});
+
+test("registers its service worker under the project path", async ({ page }) => {
+  await page.goto(".");
+  await page.waitForFunction(async () => Boolean(await navigator.serviceWorker?.ready), undefined, { timeout: 15_000 });
+
+  const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+  expect(new URL(scope).pathname).toBe("/quicksilver/");
+});
+
 test("reads video details and opens compression controls", async ({ page }) => {
   await page.goto(".");
   await page.getByLabel("Choose video").setInputFiles(sampleVideo);

@@ -3,6 +3,7 @@ import { createSignal, onCleanup, Show } from "solid-js";
 import { CompressionWorkspace } from "./components/CompressionWorkspace";
 import { FilePicker } from "./components/FilePicker";
 import { probeMedia, type MediaSession } from "./media/probe";
+import { UpdatePrompt } from "./pwa/UpdatePrompt";
 
 export function App() {
   const [session, setSession] = createSignal<MediaSession>();
@@ -63,6 +64,7 @@ export function App() {
           )}
         </Show>
       </main>
+      <UpdatePrompt />
     </div>
   );
 }

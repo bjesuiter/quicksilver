@@ -16,7 +16,26 @@ Browser-based media tools can be useful, but the workflow breaks down when a vid
 
 ## Status
 
-Idea and requirements stage. No implementation yet.
+Version 0.1 converts SDR MOV and MP4 video locally. It reads the source resolution, frame rate, and video bitrate, then writes an H.264 MP4 using the selected output settings.
+
+HDR and Dolby Vision inputs are detected and blocked because version 0.1 does not have a verified color-preservation or tone-mapping path.
+
+## Development
+
+```sh
+npm install
+npm run dev
+```
+
+The app runs at `http://localhost:5173/quicksilver/`. Before pushing a change, run:
+
+```sh
+npm run typecheck
+npm run build
+npm run test:e2e -- --project=chromium
+```
+
+The full GitHub Actions suite also runs the mobile Chromium and mobile WebKit projects before deploying `dist/` to GitHub Pages.
 
 ## Planning
 

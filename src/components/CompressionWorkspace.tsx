@@ -23,6 +23,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   const valid = createMemo(() => isValidOutput(settings()));
 
   let job: ConversionJob | undefined;
+  let runId = 0;
 
   const cleanupResult = () => {
     const current = result();
@@ -31,6 +32,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   };
 
   onCleanup(() => {
+    runId += 1;
     cleanupResult();
     if (status() === "converting") void job?.cancel();
   });
@@ -51,6 +53,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   };
 
   const startConversion = async () => {
+    const currentRun = ++runId;
     setError(undefined);
     cleanupResult();
     setProgress(0);
@@ -58,26 +61,34 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
     setStatus("converting");
 
     try {
-      job = await createConversionJob(props.session, settings(), (next) => {
+      const nextJob = await createConversionJob(props.session, settings(), (next) => {
         setProgress(next.fraction);
         setBytesWritten(next.bytesWritten);
       });
+      if (currentRun !== runId || status() !== "converting") {
+        await nextJob.cancel();
+        return;
+      }
+      job = nextJob;
       const file = await job.execute();
+      if (currentRun !== runId) return;
       setResult({ file, url: URL.createObjectURL(file) });
       setStatus("complete");
     } catch (cause) {
-      if (status() === "converting") {
+      if (currentRun === runId && status() === "converting") {
         setError(cause instanceof Error ? cause.message : "The video could not be converted.");
         setStatus("ready");
       }
     } finally {
-      job = undefined;
+      if (currentRun === runId) job = undefined;
     }
   };
 
   const cancelConversion = async () => {
-    await job?.cancel();
+    runId += 1;
     setStatus("ready");
+    await job?.cancel();
+    job = undefined;
   };
 
   const canShare = createMemo(() => {

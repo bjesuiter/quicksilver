@@ -13,7 +13,12 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt",
       injectRegister: false,
-      includeAssets: ["icon.svg"],
+      devOptions: {
+        enabled: true,
+        suppressWarnings: true,
+        type: "module"
+      },
+      includeAssets: ["favicon.ico", "icon.svg", "apple-touch-icon-180x180.png"],
       manifest: {
         name: "Quicksilver",
         short_name: "Quicksilver",
@@ -26,10 +31,25 @@ export default defineConfig({
         scope: base,
         icons: [
           {
-            src: `${base}icon.svg`,
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any maskable"
+            src: `${base}pwa-64x64.png`,
+            sizes: "64x64",
+            type: "image/png"
+          },
+          {
+            src: `${base}pwa-192x192.png`,
+            sizes: "192x192",
+            type: "image/png"
+          },
+          {
+            src: `${base}pwa-512x512.png`,
+            sizes: "512x512",
+            type: "image/png"
+          },
+          {
+            src: `${base}maskable-icon-512x512.png`,
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
           }
         ]
       },

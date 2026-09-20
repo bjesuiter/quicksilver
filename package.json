@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "generate:pwa-assets": "pwa-assets-generator",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "test:e2e": "playwright test",
@@ -21,6 +22,7 @@
     "@solidjs/vite-plugin": "3.0.0-next.44",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.10.1",
+    "@vite-pwa/assets-generator": "1.0.4",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
     "vite": "8.3.0",

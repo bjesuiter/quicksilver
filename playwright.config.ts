@@ -20,6 +20,10 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] }
     },
     {
+      name: "mobile-chromium",
+      use: { ...devices["iPhone 15 Pro"], browserName: "chromium" }
+    },
+    {
       name: "mobile-safari",
       use: { ...devices["iPhone 15 Pro"] }
     }
