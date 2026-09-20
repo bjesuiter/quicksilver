@@ -1,5 +1,11 @@
 # quicksilver
 
+## 0.3.2
+
+### Patch Changes
+
+- a3bd488: Let users return to output format selection without choosing their source file again.
+
 ## 0.3.1
 
 ### Patch Changes
