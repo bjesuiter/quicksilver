@@ -10,12 +10,12 @@ export function defaultOutputSettings(source: SourceMedia): OutputSettings {
   const workloadRatio = (width * height * frameRate) / (source.width * source.height * source.frameRate);
   const videoBitrate = Math.round(Math.max(250_000, source.videoBitrate * workloadRatio) / 10_000) * 10_000;
 
-  return { width, height, frameRate, videoBitrate };
+  return { target: source.mediaType === "audio" ? "aac-m4a" : "avc-mp4", width, height, frameRate, videoBitrate };
 }
 
 export function estimateOutputBytes(source: SourceMedia, settings: OutputSettings): number {
-  if (source.mediaType === "audio") return (source.duration * 192_000 * 1.02) / 8;
-  return (source.duration * (settings.videoBitrate + source.audioBitrate) * 1.02) / 8;
+  if (settings.target === "aac-m4a") return (source.duration * 192_000 * 1.02) / 8;
+  return (source.duration * (settings.videoBitrate + (source.hasAudio ? source.audioBitrate : 0)) * 1.02) / 8;
 }
 
 export function linkedHeight(source: SourceMedia, width: number): number {
