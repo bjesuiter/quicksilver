@@ -1,6 +1,7 @@
 import { BlobSource, Input, MP4, QTFF } from "mediabunny";
 
 import type { SourceMedia } from "../domain/media";
+import { fingerprintMedia } from "./fingerprint";
 
 export type MediaSession = {
   file: File;
@@ -48,19 +49,25 @@ export async function probeMedia(file: File): Promise<MediaSession> {
       audioTrack?.computePacketStats() ?? Promise.resolve(null)
     ]);
 
+    const metadata = {
+      duration,
+      width,
+      height,
+      frameRate: frameRateMetrics.bestGuessFrameRate,
+      videoBitrate: videoStats.averageBitrate,
+      codec: codec ?? "unknown"
+    };
+    const identity = await fingerprintMedia(file, metadata);
+
     return {
       file,
       input,
       source: {
+        identity,
         fileName: file.name,
         fileSize: file.size,
-        duration,
-        width,
-        height,
-        frameRate: frameRateMetrics.bestGuessFrameRate,
-        videoBitrate: videoStats.averageBitrate,
+        ...metadata,
         audioBitrate: audioStats?.averageBitrate ?? 192_000,
-        codec: codec ?? "unknown",
         hasHighDynamicRange,
         canDecode
       },

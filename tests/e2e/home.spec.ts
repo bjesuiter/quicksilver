@@ -78,7 +78,7 @@ test("updates all output settings and validates the target", async ({ page }) =>
   await expect(page.getByText(/Enter valid dimensions/)).toBeVisible();
 });
 
-test("compresses a video and exposes a downloadable MP4", async ({ page }) => {
+test("compresses a video and remembers its export settings", async ({ page }) => {
   test.setTimeout(60_000);
   await page.addInitScript(() => {
     window.__QUICKSILVER_TEST_TRANSCODER__ = async ({ input, outputName, onProgress, isCanceled }) => {
@@ -104,6 +104,21 @@ test("compresses a video and exposes a downloadable MP4", async ({ page }) => {
   await expect(download).toHaveAttribute("download", "sample-quicksilver.mp4");
   await expect(download).toHaveAttribute("href", /^blob:/);
   await expect(page.getByText(/smaller than the source|larger than the source/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Convert again with different settings" }).click();
+
+  await expect(page.getByLabel("Output width")).toHaveValue("320");
+  await expect(page.getByLabel("Output height")).toHaveValue("180");
+  await expect(page.getByLabel("Output frame rate")).toHaveValue("24");
+  await expect(page.getByLabel("Target bitrate")).toHaveValue("0.5");
+  await expect(page.getByText("Already exported for sample.mp4")).toBeVisible();
+  await expect(page.getByText("320 × 180 · 24 fps · 0.5 Mbps")).toBeVisible();
+
+  await page.reload();
+  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+
+  await expect(page.getByText("Already exported for sample.mp4")).toBeVisible();
+  await expect(page.getByText("320 × 180 · 24 fps · 0.5 Mbps")).toBeVisible();
 });
 
 test("cancels an in-progress conversion and returns to the settings", async ({ page }) => {

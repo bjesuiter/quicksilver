@@ -1,4 +1,5 @@
 export type SourceMedia = {
+  identity: string;
   fileName: string;
   fileSize: number;
   duration: number;

@@ -3,6 +3,7 @@ import { createMemo, createSignal, onCleanup, Show } from "solid-js";
 import { formatBitrate, formatBytes, formatDuration, formatFrameRate } from "../domain/format";
 import type { OutputSettings } from "../domain/media";
 import { defaultOutputSettings, estimateOutputBytes, isValidOutput, linkedHeight, linkedWidth } from "../domain/settings";
+import { readExportHistory, rememberExport, type ExportRecord } from "../history/exportHistory";
 import type { MediaSession } from "../media/probe";
 import { createConversionJob, type ConversionJob } from "../media/transcode";
 
@@ -19,6 +20,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   const [bytesWritten, setBytesWritten] = createSignal(0);
   const [result, setResult] = createSignal<{ file: File; url: string }>();
   const [error, setError] = createSignal<string>();
+  const [history, setHistory] = createSignal(readExportHistory(source().identity));
   const estimate = createMemo(() => estimateOutputBytes(source(), settings()));
   const valid = createMemo(() => isValidOutput(settings()));
 
@@ -72,6 +74,10 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
       job = nextJob;
       const file = await job.execute();
       if (currentRun !== runId) return;
+      setHistory(rememberExport(source().identity, {
+        settings: { ...settings() },
+        outputSize: file.size
+      }));
       setResult({ file, url: URL.createObjectURL(file) });
       setStatus("complete");
     } catch (cause) {
@@ -112,6 +118,12 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
     props.onReset();
   };
 
+  const convertAgain = () => {
+    cleanupResult();
+    setError(undefined);
+    setStatus("ready");
+  };
+
   const sizeDifference = createMemo(() => {
     const current = result();
     if (!current) return "";
@@ -148,7 +160,10 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
         </div>
       )}
 
-      <Show when={status() !== "complete"} fallback={<CompletedResult result={result()!} sizeDifference={sizeDifference()} canShare={canShare()} onShare={shareResult} onReset={resetWorkspace} />}>
+      <Show when={status() !== "complete"} fallback={<CompletedResult result={result()!} sizeDifference={sizeDifference()} canShare={canShare()} onShare={shareResult} onConvertAgain={convertAgain} onReset={resetWorkspace} />}>
+      <Show when={history().length > 0}>
+        <ExportHistory fileName={source().fileName} records={history()} />
+      </Show>
       <div class="mt-10 grid overflow-hidden rounded-xl border border-[#d9e0e8] bg-white lg:grid-cols-[1fr_auto_1fr]">
         <div class="p-6 sm:p-8">
           <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source</p>
@@ -222,6 +237,7 @@ function CompletedResult(props: {
   sizeDifference: string;
   canShare: boolean;
   onShare: () => void;
+  onConvertAgain: () => void;
   onReset: () => void;
 }) {
   return (
@@ -240,6 +256,9 @@ function CompletedResult(props: {
           <a class="flex min-h-12 items-center justify-center rounded-lg border border-[#cbd4de] px-6 font-semibold hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" href={props.result.url} download={props.result.file.name}>
             Download MP4
           </a>
+          <button type="button" class="min-h-12 rounded-lg border border-[#cbd4de] px-6 font-semibold hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onConvertAgain}>
+            Convert again with different settings
+          </button>
           <button type="button" class="min-h-12 px-4 text-sm font-medium text-[#65717f] hover:text-[#18212b]" onClick={props.onReset}>
             Convert another
           </button>
@@ -247,6 +266,28 @@ function CompletedResult(props: {
       </div>
     </div>
   );
+}
+
+function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
+  return (
+    <aside class="mt-8 rounded-xl border border-[#cbd9ea] bg-[#f5f8fc] p-5" aria-labelledby="export-history-title">
+      <p id="export-history-title" class="text-sm font-semibold text-[#26384d]">Already exported for {props.fileName}</p>
+      <ul class="mt-3 grid gap-2">
+        {props.records.map((record) => (
+          <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
+            <span class="font-mono text-[#18212b]">
+              {record.settings.width} × {record.settings.height} · {formatFrameRate(record.settings.frameRate)} fps · {formatMegabits(record.settings.videoBitrate)} Mbps
+            </span>
+            <span class="text-xs text-[#65717f]">{formatBytes(record.outputSize)}</span>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
+function formatMegabits(bitsPerSecond: number): string {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(bitsPerSecond / 1_000_000);
 }
 
 function Metric(props: { label: string; value: string; testId: string }) {
