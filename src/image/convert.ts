@@ -23,11 +23,19 @@ export async function convertImage(source: SourceImage, settings: ImageConversio
 
   let input: PhotonImage | undefined;
   let output: typeof input;
+  let bitmap: ImageBitmap | undefined;
 
   try {
     const photon = await import("@silvia-odwyer/photon");
     await photon.default();
-    input = photon.PhotonImage.new_from_byteslice(new Uint8Array(await source.file.arrayBuffer()));
+    bitmap = await createImageBitmap(source.file, { imageOrientation: "from-image" });
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Canvas is unavailable");
+    context.drawImage(bitmap, 0, 0);
+    input = new photon.PhotonImage(new Uint8Array(context.getImageData(0, 0, bitmap.width, bitmap.height).data), bitmap.width, bitmap.height);
     output = input;
     if (settings.width !== source.width || settings.height !== source.height) {
       output = photon.resize(input, settings.width, settings.height, photon.SamplingFilter.Lanczos3);
@@ -45,6 +53,7 @@ export async function convertImage(source: SourceImage, settings: ImageConversio
   } catch {
     throw new Error("This image could not be converted. Try another JPEG, PNG, or WebP image.");
   } finally {
+    bitmap?.close();
     if (output && output !== input) output.free();
     input?.free();
   }
