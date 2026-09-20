@@ -88,26 +88,24 @@ export function App() {
         </div>
       </header>
 
-      <nav aria-label="Primary" class="border-b border-[#d9e0e8] bg-white">
-        <div class="mx-auto w-full max-w-5xl px-5 py-3 sm:px-8 sm:py-4">
-          <div class="grid w-full grid-cols-2 rounded-xl border border-[#d9e0e8] bg-[#f5f7fa] p-1.5 text-sm sm:text-base">
-            <a
-              class={navClass(page() === "direct")}
-              href={pageHref("direct")}
-              aria-current={page() === "direct" ? "page" : undefined}
-              onClick={(event) => navigate("direct", event)}
-            >
-              Direct conversion
-            </a>
-            <a
-              class={navClass(page() === "templates")}
-              href={pageHref("templates")}
-              aria-current={page() === "templates" ? "page" : undefined}
-              onClick={(event) => navigate("templates", event)}
-            >
-              Templates
-            </a>
-          </div>
+      <nav aria-label="Primary" class="bg-white">
+        <div class="mx-auto flex w-full max-w-5xl gap-7 border-b border-[#d9e0e8] px-5 sm:px-8">
+          <a
+            class={navClass(page() === "direct")}
+            href={pageHref("direct")}
+            aria-current={page() === "direct" ? "page" : undefined}
+            onClick={(event) => navigate("direct", event)}
+          >
+            Direct conversion
+          </a>
+          <a
+            class={navClass(page() === "templates")}
+            href={pageHref("templates")}
+            aria-current={page() === "templates" ? "page" : undefined}
+            onClick={(event) => navigate("templates", event)}
+          >
+            Templates
+          </a>
         </div>
       </nav>
 
@@ -164,7 +162,7 @@ function pageHref(page: Page): string {
 }
 
 function navClass(active: boolean): string {
-  return `rounded-lg px-3 py-2.5 text-center font-semibold transition-[background-color,color,transform] duration-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0] active:scale-[0.99] ${active ? "bg-[#1769e0] text-white shadow-[0_1px_2px_rgba(17,74,158,0.28)]" : "text-[#52606e] hover:bg-white hover:text-[#18212b]"}`;
+  return `relative py-4 text-sm font-semibold transition-colors duration-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0] ${active ? "text-[#1769e0] after:absolute after:right-0 after:bottom-0 after:left-0 after:h-0.75 after:bg-[#1769e0]" : "text-[#65717f] hover:text-[#18212b]"}`;
 }
 
 function TemplatesPage(props: { onNavigate: (event: MouseEvent) => void }) {
