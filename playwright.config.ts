@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = "http://127.0.0.1:4173/quicksilver/";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173/quicksilver/";
+const usesManagedServer = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -28,10 +29,12 @@ export default defineConfig({
       use: { ...devices["iPhone 15 Pro"] }
     }
   ],
-  webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 4173",
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000
-  }
+  webServer: usesManagedServer
+    ? undefined
+    : {
+        command: "npm run dev -- --host 127.0.0.1 --port 4173",
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000
+      }
 });
