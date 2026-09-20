@@ -4,10 +4,12 @@ import {
   Conversion,
   Mp4OutputFormat,
   Output,
-  Quality
+  Quality,
+  WebMOutputFormat
 } from "mediabunny";
 
 import type { OutputSettings } from "../domain/media";
+import { outputTarget } from "../domain/outputTarget";
 import type { MediaSession } from "./probe";
 import { createOutputStorage } from "./targets";
 
@@ -34,7 +36,7 @@ export async function createConversionJob(
       execute: () =>
         testTranscoder({
           input: session.file,
-          outputName: outputName(session.file.name),
+          outputName: outputName(session.file.name, settings.target),
           settings,
           onProgress,
           isCanceled: () => canceled
@@ -45,13 +47,15 @@ export async function createConversionJob(
     };
   }
 
-  const isAudio = session.source.mediaType === "audio";
+  const targetFormat = outputTarget(settings.target);
+  const isAudio = targetFormat.mediaType === "audio";
   const quality = new Quality({ bitrate: isAudio ? 192_000 : settings.videoBitrate, bitrateMode: "variable" });
-  if (isAudio) {
-    const canEncode = await canEncodeAudio("aac", { quality });
-    if (!canEncode) throw new Error("This browser cannot encode AAC audio. Try a browser with WebCodecs audio support.");
+  const audioQuality = new Quality({ bitrate: targetFormat.audioCodec === "opus" ? 128_000 : 192_000, bitrateMode: "variable" });
+  if (session.source.hasAudio) {
+    const canEncodeAudioTrack = await canEncodeAudio(targetFormat.audioCodec, { quality: audioQuality });
+    if (!canEncodeAudioTrack) throw new Error(`This browser cannot encode ${targetFormat.audioCodec.toUpperCase()} audio. Try a browser with WebCodecs audio support.`);
   }
-  const canEncode = !isAudio && await canEncodeVideo("avc", {
+  const canEncode = !isAudio && await canEncodeVideo(targetFormat.videoCodec!, {
     width: settings.width,
     height: settings.height,
     frameRate: settings.frameRate,
@@ -60,14 +64,14 @@ export async function createConversionJob(
   });
 
   if (!isAudio && !canEncode) {
-    throw new Error("This browser cannot encode H.264 with the selected settings.");
+    throw new Error(`This browser cannot encode ${targetFormat.title} with the selected settings.`);
   }
 
-  const estimatedBytes = (session.source.duration * (isAudio ? 192_000 : settings.videoBitrate + session.source.audioBitrate) * 1.02) / 8;
-  const storage = await createOutputStorage(estimatedBytes);
+  const estimatedBytes = (session.source.duration * (isAudio ? 192_000 : settings.videoBitrate + (session.source.hasAudio ? session.source.audioBitrate : 0)) * 1.02) / 8;
+  const storage = await createOutputStorage(estimatedBytes, targetFormat.extension);
   const target = storage.target;
   const output = new Output({
-    format: new Mp4OutputFormat(),
+    format: targetFormat.id === "avc-mp4" || targetFormat.id === "aac-m4a" ? new Mp4OutputFormat() : new WebMOutputFormat(),
     target
   });
   const conversion = await Conversion.init({
@@ -75,7 +79,7 @@ export async function createConversionJob(
     output,
     tracks: "primary",
     video: isAudio ? { discard: true } : {
-      codec: "avc",
+      codec: targetFormat.videoCodec!,
       width: settings.width,
       height: settings.height,
       fit: "contain",
@@ -84,7 +88,7 @@ export async function createConversionJob(
       hardwareAcceleration: "prefer-hardware",
       forceTranscode: true
     },
-    audio: isAudio ? { codec: "aac", quality, forceTranscode: true } : undefined,
+    audio: session.source.hasAudio ? { codec: targetFormat.audioCodec, quality: audioQuality, forceTranscode: true } : { discard: true },
     showWarnings: false
   });
 
@@ -112,7 +116,7 @@ export async function createConversionJob(
     execute: async () => {
       try {
         await conversion.execute();
-        return await storage.getFile(outputName(session.file.name, session.source.mediaType), isAudio ? "audio/mp4" : "video/mp4");
+        return await storage.getFile(outputName(session.file.name, settings.target), targetFormat.mimeType);
       } finally {
         await storage.cleanup();
       }
@@ -124,7 +128,8 @@ export async function createConversionJob(
   };
 }
 
-export function outputName(inputName: string, mediaType: "video" | "audio" = "video"): string {
+export function outputName(inputName: string, target: OutputSettings["target"] = "avc-mp4"): string {
   const base = inputName.replace(/\.(mov|mp4|m4v|webm|mkv|mp3|wav|aac|ogg|oga|flac|ts)$/i, "");
-  return `${base || mediaType}-quicksilver.${mediaType === "audio" ? "m4a" : "mp4"}`;
+  const format = outputTarget(target);
+  return `${base || format.mediaType}-quicksilver.${format.extension}`;
 }

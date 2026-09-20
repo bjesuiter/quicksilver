@@ -1,7 +1,8 @@
 import { createMemo, createSignal, onCleanup, Show } from "solid-js";
 
 import { formatBitrate, formatBytes, formatDuration, formatFrameRate } from "../domain/format";
-import type { OutputSettings, SourceMedia } from "../domain/media";
+import type { OutputSettings, OutputTarget, SourceMedia } from "../domain/media";
+import { outputTarget } from "../domain/outputTarget";
 import { defaultOutputSettings, estimateOutputBytes, isValidOutput, linkedHeight, linkedWidth } from "../domain/settings";
 import { readExportHistory, rememberExport, type ExportRecord } from "../history/exportHistory";
 import type { MediaSession } from "../media/probe";
@@ -9,12 +10,13 @@ import { createConversionJob, type ConversionJob } from "../media/transcode";
 
 type CompressionWorkspaceProps = {
   session: MediaSession;
+  target: OutputTarget;
   onReset: () => void;
 };
 
 export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   const source = () => props.session.source;
-  const [settings, setSettings] = createSignal(defaultOutputSettings(source()));
+  const [settings, setSettings] = createSignal({ ...defaultOutputSettings(source()), target: props.target });
   const [status, setStatus] = createSignal<"ready" | "converting" | "complete">("ready");
   const [progress, setProgress] = createSignal(0);
   const [bytesWritten, setBytesWritten] = createSignal(0);
@@ -22,7 +24,9 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   const [error, setError] = createSignal<string>();
   const [history, setHistory] = createSignal(readExportHistory(source().identity));
   const estimate = createMemo(() => estimateOutputBytes(source(), settings()));
-  const valid = createMemo(() => source().mediaType === "audio" || isValidOutput(settings()));
+  const target = createMemo(() => outputTarget(settings().target));
+  const isAudioOutput = createMemo(() => target().mediaType === "audio");
+  const valid = createMemo(() => isAudioOutput() || isValidOutput(settings()));
 
   let job: ConversionJob | undefined;
   let runId = 0;
@@ -164,7 +168,11 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
       <Show when={history().length > 0}>
         <ExportHistory fileName={source().fileName} records={history()} />
       </Show>
-      <Show when={source().mediaType === "video"} fallback={<AudioSourceSummary source={source()} />}>
+      <div class="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#cbd9ea] bg-[#f5f8fc] px-4 py-3 text-sm">
+        <span class="text-[#52606e]">Output format</span>
+        <span class="font-mono font-medium text-[#18212b]">{target().title} · {target().detail}</span>
+      </div>
+      <Show when={source().mediaType === "video" && !isAudioOutput()} fallback={<AudioSourceSummary source={source()} extracted={source().mediaType === "video"} />}>
       <div class="mt-10 grid overflow-hidden rounded-xl border border-[#d9e0e8] bg-white lg:grid-cols-[1fr_auto_1fr]">
         <div class="p-6 sm:p-8">
           <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source</p>
@@ -216,7 +224,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
               disabled={!valid() || source().hasHighDynamicRange || !source().canDecode}
               onClick={startConversion}
             >
-              {source().mediaType === "audio" ? "Convert audio" : "Convert video"}
+              {isAudioOutput() ? "Convert audio" : `Convert ${target().title}`}
             </button>
           }
         >
@@ -270,16 +278,16 @@ function CompletedResult(props: {
   );
 }
 
-function AudioSourceSummary(props: { source: SourceMedia }) {
+function AudioSourceSummary(props: { source: SourceMedia; extracted: boolean }) {
   return (
     <div class="mt-10 rounded-xl border border-[#d9e0e8] bg-white p-6 sm:p-8">
-      <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source audio</p>
+      <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">{props.extracted ? "Audio export" : "Source audio"}</p>
       <dl class="mt-7 grid gap-7 sm:grid-cols-3">
         <Metric label="Duration" value={formatDuration(props.source.duration)} testId="source-duration" />
         <Metric label="Audio codec" value={props.source.codec.toUpperCase()} testId="source-codec" />
         <Metric label="Audio bitrate" value={formatBitrate(props.source.audioBitrate)} testId="source-bitrate" />
       </dl>
-      <p class="mt-7 text-sm leading-6 text-[#65717f]">Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.</p>
+      <p class="mt-7 text-sm leading-6 text-[#65717f]">{props.extracted ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps." : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility."}</p>
     </div>
   );
 }
@@ -292,7 +300,7 @@ function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
         {props.records.map((record) => (
           <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
             <span class="font-mono text-[#18212b]">
-              {record.settings.width} × {record.settings.height} · {formatFrameRate(record.settings.frameRate)} fps · {formatMegabits(record.settings.videoBitrate)} Mbps
+              {record.settings.target === "aac-m4a" ? "AAC audio · M4A" : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
             </span>
             <span class="text-xs text-[#65717f]">{formatBytes(record.outputSize)}</span>
           </li>

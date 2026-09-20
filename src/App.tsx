@@ -3,11 +3,14 @@ import { createSignal, onCleanup, Show } from "solid-js";
 import { commit, commitUrl, version } from "./buildInfo";
 import { CompressionWorkspace } from "./components/CompressionWorkspace";
 import { FilePicker } from "./components/FilePicker";
+import { OutputTargetPicker } from "./components/OutputTargetPicker";
+import type { OutputTarget } from "./domain/media";
 import { probeMedia, type MediaSession } from "./media/probe";
 import { UpdatePrompt } from "./pwa/UpdatePrompt";
 
 export function App() {
   const [session, setSession] = createSignal<MediaSession>();
+  const [target, setTarget] = createSignal<OutputTarget>();
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal<string>();
   const [page, setPage] = createSignal<Page>(readPage());
@@ -18,6 +21,7 @@ export function App() {
     activeSession?.dispose();
     activeSession = undefined;
     setSession(undefined);
+    setTarget(undefined);
     setError(undefined);
   };
 
@@ -98,7 +102,11 @@ export function App() {
       <main class="mx-auto flex w-full flex-1 px-5 py-12 sm:px-8 sm:py-20">
         <div class={page() === "direct" ? "flex w-full items-center" : "hidden"} aria-hidden={page() !== "direct" ? "true" : "false"}>
           <Show when={session()} fallback={<FilePicker busy={busy()} onSelect={selectFile} />} keyed>
-            {(value) => <CompressionWorkspace session={value} onReset={reset} />}
+            {(value) => (
+              <Show when={target()} fallback={<OutputTargetPicker source={value.source} onSelect={setTarget} onReset={reset} />}>
+                {(selectedTarget) => <CompressionWorkspace session={value} target={selectedTarget()} onReset={reset} />}
+              </Show>
+            )}
           </Show>
         </div>
         <Show when={page() === "templates"}>

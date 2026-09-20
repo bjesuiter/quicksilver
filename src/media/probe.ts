@@ -44,6 +44,7 @@ export async function probeMedia(file: File): Promise<MediaSession> {
           fileSize: file.size,
           ...metadata,
           audioBitrate: audioStats.averageBitrate || 192_000,
+          hasAudio: true,
           hasHighDynamicRange: false,
           canDecode
         },
@@ -92,6 +93,7 @@ export async function probeMedia(file: File): Promise<MediaSession> {
         fileSize: file.size,
         ...metadata,
         audioBitrate: audioStats?.averageBitrate ?? 192_000,
+        hasAudio: Boolean(audioTrack),
         hasHighDynamicRange,
         canDecode
       },
