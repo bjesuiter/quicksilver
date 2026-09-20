@@ -35,6 +35,13 @@ test("registers its service worker under the project path", async ({ page }) => 
   expect(new URL(scope).pathname).toBe("/quicksilver/");
 });
 
+test("keeps the offline notice from blocking app controls", async ({ page }) => {
+  await page.goto(".");
+  const notice = page.getByText("Quicksilver is ready to use offline.");
+  await expect(notice).toBeVisible({ timeout: 15_000 });
+  await expect(notice.locator("xpath=ancestor::aside")).toHaveCSS("pointer-events", "none");
+});
+
 test("reads video details and opens compression controls", async ({ page }) => {
   await page.goto(".");
   await page.getByLabel("Choose video").setInputFiles(sampleVideo);
