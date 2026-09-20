@@ -47,3 +47,50 @@ test("updates all output settings and validates the target", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Compress video" })).toBeDisabled();
   await expect(page.getByText(/Enter valid dimensions/)).toBeVisible();
 });
+
+test("compresses a video and exposes a downloadable MP4", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    window.__QUICKSILVER_TEST_TRANSCODER__ = async ({ input, outputName, onProgress, isCanceled }) => {
+      onProgress({ fraction: 0.4, processedTime: 0.8, bytesWritten: 80_000 });
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      if (isCanceled()) throw new Error("Conversion canceled");
+      onProgress({ fraction: 1, processedTime: 2, bytesWritten: input.size });
+      return new File([input], outputName, { type: "video/mp4" });
+    };
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
+
+  await page.getByLabel("Output width").fill("320");
+  await page.getByLabel("Output frame rate").fill("24");
+  await page.getByLabel("Target bitrate").fill("0.5");
+  await page.getByRole("button", { name: "Compress video" }).click();
+
+  await expect(page.getByText("Compressing video")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Video ready" })).toBeVisible({ timeout: 45_000 });
+  const download = page.getByRole("link", { name: "Download MP4" });
+  await expect(download).toHaveAttribute("download", "sample-quicksilver.mp4");
+  await expect(download).toHaveAttribute("href", /^blob:/);
+  await expect(page.getByText(/smaller than the source|larger than the source/)).toBeVisible();
+});
+
+test("cancels an in-progress conversion and returns to the settings", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__QUICKSILVER_TEST_TRANSCODER__ = async ({ input, outputName, onProgress, isCanceled }) => {
+      onProgress({ fraction: 0.2, processedTime: 0.4, bytesWritten: 30_000 });
+      while (!isCanceled()) await new Promise((resolve) => setTimeout(resolve, 20));
+      throw new Error(`Canceled ${input.name} before creating ${outputName}`);
+    };
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await page.getByRole("button", { name: "Compress video" }).click();
+
+  await expect(page.getByText("Compressing video")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(page.getByRole("button", { name: "Compress video" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Video ready" })).not.toBeVisible();
+});

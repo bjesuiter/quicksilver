@@ -1,9 +1,10 @@
-import { createMemo, createSignal } from "solid-js";
+import { createMemo, createSignal, onCleanup, Show } from "solid-js";
 
 import { formatBitrate, formatBytes, formatDuration, formatFrameRate } from "../domain/format";
 import type { OutputSettings } from "../domain/media";
 import { defaultOutputSettings, estimateOutputBytes, isValidOutput, linkedHeight, linkedWidth } from "../domain/settings";
 import type { MediaSession } from "../media/probe";
+import { createConversionJob, type ConversionJob } from "../media/transcode";
 
 type CompressionWorkspaceProps = {
   session: MediaSession;
@@ -13,8 +14,26 @@ type CompressionWorkspaceProps = {
 export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   const source = () => props.session.source;
   const [settings, setSettings] = createSignal(defaultOutputSettings(source()));
+  const [status, setStatus] = createSignal<"ready" | "converting" | "complete">("ready");
+  const [progress, setProgress] = createSignal(0);
+  const [bytesWritten, setBytesWritten] = createSignal(0);
+  const [result, setResult] = createSignal<{ file: File; url: string }>();
+  const [error, setError] = createSignal<string>();
   const estimate = createMemo(() => estimateOutputBytes(source(), settings()));
   const valid = createMemo(() => isValidOutput(settings()));
+
+  let job: ConversionJob | undefined;
+
+  const cleanupResult = () => {
+    const current = result();
+    if (current) URL.revokeObjectURL(current.url);
+    setResult(undefined);
+  };
+
+  onCleanup(() => {
+    cleanupResult();
+    if (status() === "converting") void job?.cancel();
+  });
 
   const updateNumber = (key: keyof OutputSettings, value: string) => {
     const number = Number(value);
@@ -31,6 +50,64 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
     setSettings((current) => ({ ...current, height, width: linkedWidth(source(), height) }));
   };
 
+  const startConversion = async () => {
+    setError(undefined);
+    cleanupResult();
+    setProgress(0);
+    setBytesWritten(0);
+    setStatus("converting");
+
+    try {
+      job = await createConversionJob(props.session, settings(), (next) => {
+        setProgress(next.fraction);
+        setBytesWritten(next.bytesWritten);
+      });
+      const file = await job.execute();
+      setResult({ file, url: URL.createObjectURL(file) });
+      setStatus("complete");
+    } catch (cause) {
+      if (status() === "converting") {
+        setError(cause instanceof Error ? cause.message : "The video could not be converted.");
+        setStatus("ready");
+      }
+    } finally {
+      job = undefined;
+    }
+  };
+
+  const cancelConversion = async () => {
+    await job?.cancel();
+    setStatus("ready");
+  };
+
+  const canShare = createMemo(() => {
+    const current = result();
+    return Boolean(current && navigator.canShare?.({ files: [current.file] }));
+  });
+
+  const shareResult = async () => {
+    const current = result();
+    if (!current || !canShare()) return;
+    try {
+      await navigator.share({ files: [current.file], title: current.file.name });
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError") return;
+      setError("The share sheet could not be opened. Use Download MP4 instead.");
+    }
+  };
+
+  const resetWorkspace = () => {
+    cleanupResult();
+    props.onReset();
+  };
+
+  const sizeDifference = createMemo(() => {
+    const current = result();
+    if (!current) return "";
+    const difference = Math.round(Math.abs(1 - current.file.size / source().fileSize) * 100);
+    return `${difference}% ${current.file.size <= source().fileSize ? "smaller" : "larger"} than the source`;
+  });
+
   return (
     <section class="w-full" aria-labelledby="file-name">
       <div class="flex flex-wrap items-start justify-between gap-5">
@@ -43,7 +120,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
             {formatBytes(source().fileSize)} · {formatDuration(source().duration)} · {source().codec.toUpperCase()}
           </p>
         </div>
-        <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onReset}>
+        <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={resetWorkspace}>
           Choose another
         </button>
       </div>
@@ -60,6 +137,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
         </div>
       )}
 
+      <Show when={status() !== "complete"} fallback={<CompletedResult result={result()!} sizeDifference={sizeDifference()} canShare={canShare()} onShare={shareResult} onReset={resetWorkspace} />}>
       <div class="mt-10 grid overflow-hidden rounded-xl border border-[#d9e0e8] bg-white lg:grid-cols-[1fr_auto_1fr]">
         <div class="p-6 sm:p-8">
           <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source</p>
@@ -95,19 +173,68 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
 
       <div class="mt-6 flex flex-col gap-5 rounded-xl bg-[#18212b] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
-          <p class="text-sm text-[#aeb8c4]">Estimated size</p>
-          <p class="mt-1 font-mono text-2xl tracking-[-0.04em]">~{formatBytes(estimate())}</p>
+          <p class="text-sm text-[#aeb8c4]">{status() === "converting" ? "Compressing video" : "Estimated size"}</p>
+          <Show when={status() === "converting"} fallback={<p class="mt-1 font-mono text-2xl tracking-[-0.04em]">~{formatBytes(estimate())}</p>}>
+            <p class="mt-1 font-mono text-2xl tracking-[-0.04em]">{Math.round(progress() * 100)}%</p>
+            <p class="mt-1 text-xs text-[#aeb8c4]">{formatBytes(bytesWritten())} written</p>
+          </Show>
         </div>
-        <button
-          type="button"
-          class="min-h-12 rounded-lg bg-[#2d7ff0] px-6 font-semibold text-white hover:bg-[#438cf2] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-45"
-          disabled={!valid() || source().hasHighDynamicRange || !source().canDecode}
+        <Show
+          when={status() === "converting"}
+          fallback={
+            <button
+              type="button"
+              class="min-h-12 rounded-lg bg-[#2d7ff0] px-6 font-semibold text-white hover:bg-[#438cf2] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-45"
+              disabled={!valid() || source().hasHighDynamicRange || !source().canDecode}
+              onClick={startConversion}
+            >
+              Compress video
+            </button>
+          }
         >
-          Compress video
-        </button>
+          <button type="button" class="min-h-12 rounded-lg border border-[#66717e] px-6 font-semibold text-white hover:border-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={cancelConversion}>
+            Cancel
+          </button>
+        </Show>
       </div>
       {!valid() && <p class="mt-3 text-sm text-[#b42318]">Enter valid dimensions, a frame rate from 1 to 120, and a bitrate from 0.1 to 100 Mbps.</p>}
+      </Show>
+      <Show when={error()}>
+        {(message) => <p class="mt-4 rounded-lg border border-[#f0c8c4] bg-[#fff7f6] p-4 text-sm leading-6 text-[#8a271f]" role="alert">{message()}</p>}
+      </Show>
     </section>
+  );
+}
+
+function CompletedResult(props: {
+  result: { file: File; url: string };
+  sizeDifference: string;
+  canShare: boolean;
+  onShare: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div class="mt-10 overflow-hidden rounded-xl border border-[#d9e0e8] bg-white">
+      <div class="p-6 sm:p-10">
+        <div class="grid size-11 place-items-center rounded-full bg-[#e8f5ee] text-xl text-[#18794e]" aria-hidden="true">✓</div>
+        <p class="mt-8 font-mono text-xs font-medium tracking-[0.12em] text-[#18794e] uppercase">Conversion complete</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-[-0.045em] sm:text-5xl">Video ready</h2>
+        <p class="mt-4 text-[#65717f]">{formatBytes(props.result.file.size)} · {props.sizeDifference}</p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Show when={props.canShare}>
+            <button type="button" class="min-h-12 rounded-lg bg-[#1769e0] px-6 font-semibold text-white hover:bg-[#0f5dcf] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onShare}>
+              Save or share
+            </button>
+          </Show>
+          <a class="flex min-h-12 items-center justify-center rounded-lg border border-[#cbd4de] px-6 font-semibold hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" href={props.result.url} download={props.result.file.name}>
+            Download MP4
+          </a>
+          <button type="button" class="min-h-12 px-4 text-sm font-medium text-[#65717f] hover:text-[#18212b]" onClick={props.onReset}>
+            Convert another
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
