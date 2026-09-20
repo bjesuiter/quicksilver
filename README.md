@@ -16,7 +16,7 @@ Browser-based media tools can be useful, but the workflow breaks down when a vid
 
 ## Status
 
-Version 0.1 converts SDR MOV and MP4 video locally. It reads the source resolution, frame rate, and video bitrate, then writes an H.264 MP4 using the selected output settings.
+Version 0.1 converts supported SDR video and audio locally. It reads MP4, MOV, WebM, MKV, MP3, WAV, AAC, Ogg, FLAC, and MPEG-TS media, then writes H.264 MP4 video or AAC M4A audio. The browser verifies the selected media's decode and output encode capabilities before conversion.
 
 HDR and Dolby Vision inputs are detected and blocked because version 0.1 does not have a verified color-preservation or tone-mapping path.
 

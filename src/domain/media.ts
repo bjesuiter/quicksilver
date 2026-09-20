@@ -1,4 +1,5 @@
 export type SourceMedia = {
+  mediaType: "video" | "audio";
   identity: string;
   fileName: string;
   fileSize: number;

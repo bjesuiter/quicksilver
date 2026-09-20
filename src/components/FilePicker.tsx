@@ -12,12 +12,12 @@ export function FilePicker(props: FilePickerProps) {
   return (
     <section class="w-full" aria-labelledby="page-title">
       <div class="max-w-2xl">
-        <p class="mb-4 font-mono text-xs font-medium tracking-[0.14em] text-[#1769e0] uppercase">Video compressor</p>
+        <p class="mb-4 font-mono text-xs font-medium tracking-[0.14em] text-[#1769e0] uppercase">Local media converter</p>
         <h1 id="page-title" class="text-[clamp(2.35rem,7vw,4.75rem)] leading-[0.96] font-semibold tracking-[-0.055em] text-balance">
-          Make iPhone videos smaller
+          Convert media on your device
         </h1>
         <p class="mt-6 max-w-xl text-base leading-7 text-[#65717f] sm:text-lg">
-          Change the resolution, frame rate, and bitrate. The conversion runs in your browser.
+          Convert supported video or audio to a compatible MP4 or M4A file. Your media never leaves this device.
         </p>
       </div>
 
@@ -25,24 +25,24 @@ export function FilePicker(props: FilePickerProps) {
         <input
           class="absolute inset-0 cursor-pointer opacity-0"
           type="file"
-          accept="video/quicktime,video/mp4,.mov,.mp4"
-          aria-label="Choose video"
+          accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/mp2t,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/ogg,audio/flac,.mp4,.m4v,.mov,.webm,.mkv,.ts,.mp3,.wav,.aac,.ogg,.oga,.flac"
+          aria-label="Choose media"
           disabled={props.busy}
           onChange={selectFile}
         />
         <div class="flex items-start justify-between gap-6">
-          <span class="text-xl font-medium tracking-[-0.025em] sm:text-2xl">{props.busy ? "Inspecting video…" : "Choose video"}</span>
+          <span class="text-xl font-medium tracking-[-0.025em] sm:text-2xl">{props.busy ? "Inspecting media…" : "Choose media"}</span>
           <span class="grid size-10 shrink-0 place-items-center rounded-full border border-[#d9e0e8] text-xl text-[#1769e0] transition-transform group-hover:translate-x-0.5" aria-hidden="true">
             {props.busy ? "·" : "+"}
           </span>
         </div>
         <div class="mt-8 flex flex-wrap items-end justify-between gap-3 text-sm text-[#65717f]">
-          <span>Your video stays on this device.</span>
-          <span class="font-mono text-xs tracking-[0.08em] uppercase">MOV or MP4</span>
+          <span>Your media stays on this device.</span>
+          <span class="font-mono text-xs tracking-[0.08em] uppercase">Video or audio</span>
         </div>
       </label>
 
-      <p class="mt-4 text-sm leading-6 text-[#7a8592]">Works best with SDR recordings on iOS 17.4 or newer.</p>
+      <p class="mt-4 text-sm leading-6 text-[#7a8592]">Supports MP4, MOV, WebM, MKV, MP3, WAV, AAC, Ogg, FLAC, and MPEG-TS. Compatibility is checked before conversion.</p>
     </section>
   );
 }

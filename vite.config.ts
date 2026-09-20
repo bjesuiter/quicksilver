@@ -31,7 +31,7 @@ export default defineConfig({
       manifest: {
         name: "Quicksilver",
         short_name: "Quicksilver",
-        description: "Compress iPhone video locally in your browser.",
+        description: "Convert media locally in your browser.",
         theme_color: "#f5f7fa",
         background_color: "#f5f7fa",
         display: "standalone",

@@ -14,6 +14,7 @@ export function defaultOutputSettings(source: SourceMedia): OutputSettings {
 }
 
 export function estimateOutputBytes(source: SourceMedia, settings: OutputSettings): number {
+  if (source.mediaType === "audio") return (source.duration * 192_000 * 1.02) / 8;
   return (source.duration * (settings.videoBitrate + source.audioBitrate) * 1.02) / 8;
 }
 

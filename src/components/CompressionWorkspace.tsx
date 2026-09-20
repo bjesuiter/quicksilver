@@ -1,7 +1,7 @@
 import { createMemo, createSignal, onCleanup, Show } from "solid-js";
 
 import { formatBitrate, formatBytes, formatDuration, formatFrameRate } from "../domain/format";
-import type { OutputSettings } from "../domain/media";
+import type { OutputSettings, SourceMedia } from "../domain/media";
 import { defaultOutputSettings, estimateOutputBytes, isValidOutput, linkedHeight, linkedWidth } from "../domain/settings";
 import { readExportHistory, rememberExport, type ExportRecord } from "../history/exportHistory";
 import type { MediaSession } from "../media/probe";
@@ -22,7 +22,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
   const [error, setError] = createSignal<string>();
   const [history, setHistory] = createSignal(readExportHistory(source().identity));
   const estimate = createMemo(() => estimateOutputBytes(source(), settings()));
-  const valid = createMemo(() => isValidOutput(settings()));
+  const valid = createMemo(() => source().mediaType === "audio" || isValidOutput(settings()));
 
   let job: ConversionJob | undefined;
   let runId = 0;
@@ -82,7 +82,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
       setStatus("complete");
     } catch (cause) {
       if (currentRun === runId && status() === "converting") {
-        setError(cause instanceof Error ? cause.message : "The video could not be converted.");
+        setError(cause instanceof Error ? cause.message : "The media could not be converted.");
         setStatus("ready");
       }
     } finally {
@@ -109,7 +109,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
       await navigator.share({ files: [current.file], title: current.file.name });
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;
-      setError("The share sheet could not be opened. Use Download MP4 instead.");
+      setError("The share sheet could not be opened. Use the download instead.");
     }
   };
 
@@ -135,7 +135,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
     <section class="w-full" aria-labelledby="file-name">
       <div class="flex flex-wrap items-start justify-between gap-5">
         <div class="min-w-0">
-          <p class="mb-2 font-mono text-xs font-medium tracking-[0.12em] text-[#1769e0] uppercase">Ready to compress</p>
+          <p class="mb-2 font-mono text-xs font-medium tracking-[0.12em] text-[#1769e0] uppercase">Ready to convert</p>
           <h1 id="file-name" class="max-w-3xl truncate text-3xl font-semibold tracking-[-0.045em] sm:text-5xl" title={source().fileName}>
             {source().fileName}
           </h1>
@@ -150,13 +150,13 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
 
       {source().hasHighDynamicRange && (
         <div class="mt-8 rounded-lg border border-[#f0c8c4] bg-[#fff7f6] p-4 text-sm leading-6 text-[#8a271f]" role="alert">
-          This recording uses HDR. Quicksilver 0.1 blocks HDR conversion because it cannot preserve the color safely yet.
+          This video uses HDR. Quicksilver blocks HDR conversion because it cannot preserve the color safely yet.
         </div>
       )}
 
       {!source().canDecode && (
         <div class="mt-8 rounded-lg border border-[#f0c8c4] bg-[#fff7f6] p-4 text-sm leading-6 text-[#8a271f]" role="alert">
-          This browser cannot decode the video's {source().codec.toUpperCase()} profile. Try Safari 17.4 or newer on the iPhone that recorded it.
+          This browser cannot decode this {source().codec.toUpperCase()} {source().mediaType} format. Try a browser with WebCodecs support for this media.
         </div>
       )}
 
@@ -164,6 +164,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
       <Show when={history().length > 0}>
         <ExportHistory fileName={source().fileName} records={history()} />
       </Show>
+      <Show when={source().mediaType === "video"} fallback={<AudioSourceSummary source={source()} />}>
       <div class="mt-10 grid overflow-hidden rounded-xl border border-[#d9e0e8] bg-white lg:grid-cols-[1fr_auto_1fr]">
         <div class="p-6 sm:p-8">
           <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source</p>
@@ -196,10 +197,11 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
           </div>
         </div>
       </div>
+      </Show>
 
       <div class="mt-6 flex flex-col gap-5 rounded-xl bg-[#18212b] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
-          <p class="text-sm text-[#aeb8c4]">{status() === "converting" ? "Compressing video" : "Estimated size"}</p>
+          <p class="text-sm text-[#aeb8c4]">{status() === "converting" ? "Converting media" : "Estimated size"}</p>
           <Show when={status() === "converting"} fallback={<p class="mt-1 font-mono text-2xl tracking-[-0.04em]">~{formatBytes(estimate())}</p>}>
             <p class="mt-1 font-mono text-2xl tracking-[-0.04em]">{Math.round(progress() * 100)}%</p>
             <p class="mt-1 text-xs text-[#aeb8c4]">{formatBytes(bytesWritten())} written</p>
@@ -214,7 +216,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
               disabled={!valid() || source().hasHighDynamicRange || !source().canDecode}
               onClick={startConversion}
             >
-              Compress video
+              {source().mediaType === "audio" ? "Convert audio" : "Convert video"}
             </button>
           }
         >
@@ -245,7 +247,7 @@ function CompletedResult(props: {
       <div class="p-6 sm:p-10">
         <div class="grid size-11 place-items-center rounded-full bg-[#e8f5ee] text-xl text-[#18794e]" aria-hidden="true">✓</div>
         <p class="mt-8 font-mono text-xs font-medium tracking-[0.12em] text-[#18794e] uppercase">Conversion complete</p>
-        <h2 class="mt-2 text-3xl font-semibold tracking-[-0.045em] sm:text-5xl">Video ready</h2>
+        <h2 class="mt-2 text-3xl font-semibold tracking-[-0.045em] sm:text-5xl">Media ready</h2>
         <p class="mt-4 text-[#65717f]">{formatBytes(props.result.file.size)} · {props.sizeDifference}</p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <Show when={props.canShare}>
@@ -254,7 +256,7 @@ function CompletedResult(props: {
             </button>
           </Show>
           <a class="flex min-h-12 items-center justify-center rounded-lg border border-[#cbd4de] px-6 font-semibold hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" href={props.result.url} download={props.result.file.name}>
-            Download MP4
+            Download file
           </a>
           <button type="button" class="min-h-12 rounded-lg border border-[#cbd4de] px-6 font-semibold hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onConvertAgain}>
             Convert again with different settings
@@ -264,6 +266,20 @@ function CompletedResult(props: {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AudioSourceSummary(props: { source: SourceMedia }) {
+  return (
+    <div class="mt-10 rounded-xl border border-[#d9e0e8] bg-white p-6 sm:p-8">
+      <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source audio</p>
+      <dl class="mt-7 grid gap-7 sm:grid-cols-3">
+        <Metric label="Duration" value={formatDuration(props.source.duration)} testId="source-duration" />
+        <Metric label="Audio codec" value={props.source.codec.toUpperCase()} testId="source-codec" />
+        <Metric label="Audio bitrate" value={formatBitrate(props.source.audioBitrate)} testId="source-bitrate" />
+      </dl>
+      <p class="mt-7 text-sm leading-6 text-[#65717f]">Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.</p>
     </div>
   );
 }

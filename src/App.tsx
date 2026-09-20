@@ -28,7 +28,7 @@ export function App() {
       activeSession = next;
       setSession(next);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The video could not be inspected.");
+      setError(cause instanceof Error ? cause.message : "The media could not be inspected.");
     } finally {
       setBusy(false);
     }

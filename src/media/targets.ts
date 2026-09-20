@@ -4,7 +4,7 @@ const IN_MEMORY_LIMIT = 100_000_000;
 
 export type OutputStorage = {
   target: Target;
-  getFile: (name: string) => Promise<File>;
+  getFile: (name: string, type: string) => Promise<File>;
   cleanup: () => Promise<void>;
 };
 
@@ -13,9 +13,9 @@ export async function createOutputStorage(estimatedBytes: number): Promise<Outpu
     const target = new BufferTarget();
     return {
       target,
-      getFile: async (name) => {
+      getFile: async (name, type) => {
         if (!target.buffer) throw new Error("The encoder finished without producing an output file.");
-        return new File([target.buffer], name, { type: "video/mp4", lastModified: Date.now() });
+        return new File([target.buffer], name, { type, lastModified: Date.now() });
       },
       cleanup: async () => undefined
     };
@@ -49,9 +49,9 @@ export async function createOutputStorage(estimatedBytes: number): Promise<Outpu
 
   return {
     target,
-    getFile: async (name) => {
+    getFile: async (name, type) => {
       const storedFile = await handle.getFile();
-      return new File([storedFile], name, { type: "video/mp4", lastModified: Date.now() });
+      return new File([storedFile], name, { type, lastModified: Date.now() });
     },
     cleanup
   };

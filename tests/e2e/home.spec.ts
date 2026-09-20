@@ -3,13 +3,31 @@ import path from "node:path";
 
 const sampleVideo = path.join(import.meta.dirname, "../fixtures/sample.mp4");
 
-test("offers a private local video picker", async ({ page }) => {
+function silentWav(): Buffer {
+  const buffer = Buffer.alloc(44 + 8_000);
+  buffer.write("RIFF", 0);
+  buffer.writeUInt32LE(buffer.length - 8, 4);
+  buffer.write("WAVEfmt ", 8);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(8_000, 24);
+  buffer.writeUInt32LE(16_000, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36);
+  buffer.writeUInt32LE(8_000, 40);
+  return buffer;
+}
+
+test("offers a private local media picker", async ({ page }) => {
   await page.goto(".");
 
   await expect(page).toHaveTitle("Quicksilver");
-  await expect(page.getByRole("heading", { name: "Make iPhone videos smaller" })).toBeVisible();
-  await expect(page.getByLabel("Choose video")).toHaveAttribute("type", "file");
-  await expect(page.getByText("Your video stays on this device.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Convert media on your device" })).toBeVisible();
+  await expect(page.getByLabel("Choose media")).toHaveAttribute("type", "file");
+  await expect(page.getByLabel("Choose media")).toHaveAttribute("accept", /audio\/mpeg/);
+  await expect(page.getByText("Your media stays on this device.")).toBeVisible();
 });
 
 test("shows the build version and links the commit to GitHub", async ({ page }) => {
@@ -56,7 +74,7 @@ test("keeps the offline notice from blocking app controls", async ({ page }) => 
 
 test("reads video details and opens compression controls", async ({ page }) => {
   await page.goto(".");
-  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
 
   await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
   await expect(page.getByTestId("source-resolution")).toHaveText("640 × 360");
@@ -67,12 +85,26 @@ test("reads video details and opens compression controls", async ({ page }) => {
   await expect(page.getByLabel("Output frame rate")).toHaveValue("30");
   await expect(page.getByLabel("Target bitrate")).not.toHaveValue("");
   await expect(page.getByText(/Estimated size/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Compress video" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Convert video" })).toBeEnabled();
+});
+
+test("opens an audio-only file as an audio conversion", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({
+    name: "tone.wav",
+    mimeType: "audio/wav",
+    buffer: silentWav()
+  });
+
+  await expect(page.getByRole("heading", { name: "tone.wav" })).toBeVisible();
+  await expect(page.getByText("Source audio")).toBeVisible();
+  await expect(page.getByText("Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Convert audio" })).toBeEnabled();
 });
 
 test("updates all output settings and validates the target", async ({ page }) => {
   await page.goto(".");
-  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
   await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
 
   await page.getByLabel("Output width").fill("320");
@@ -83,10 +115,10 @@ test("updates all output settings and validates the target", async ({ page }) =>
   await expect(page.getByLabel("Output width")).toHaveValue("320");
   await expect(page.getByLabel("Output frame rate")).toHaveValue("24");
   await expect(page.getByLabel("Target bitrate")).toHaveValue("0.5");
-  await expect(page.getByRole("button", { name: "Compress video" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Convert video" })).toBeEnabled();
 
   await page.getByLabel("Target bitrate").fill("0");
-  await expect(page.getByRole("button", { name: "Compress video" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Convert video" })).toBeDisabled();
   await expect(page.getByText(/Enter valid dimensions/)).toBeVisible();
 });
 
@@ -102,17 +134,17 @@ test("compresses a video and remembers its export settings", async ({ page }) =>
     };
   });
   await page.goto(".");
-  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
   await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
 
   await page.getByLabel("Output width").fill("320");
   await page.getByLabel("Output frame rate").fill("24");
   await page.getByLabel("Target bitrate").fill("0.5");
-  await page.getByRole("button", { name: "Compress video" }).click();
+  await page.getByRole("button", { name: "Convert video" }).click();
 
-  await expect(page.getByText("Compressing video")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Video ready" })).toBeVisible({ timeout: 45_000 });
-  const download = page.getByRole("link", { name: "Download MP4" });
+  await expect(page.getByText("Converting media")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Media ready" })).toBeVisible({ timeout: 45_000 });
+  const download = page.getByRole("link", { name: "Download file" });
   await expect(download).toHaveAttribute("download", "sample-quicksilver.mp4");
   await expect(download).toHaveAttribute("href", /^blob:/);
   await expect(page.getByText(/smaller than the source|larger than the source/)).toBeVisible();
@@ -127,7 +159,7 @@ test("compresses a video and remembers its export settings", async ({ page }) =>
   await expect(page.getByText("320 × 180 · 24 fps · 0.5 Mbps")).toBeVisible();
 
   await page.reload();
-  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
 
   await expect(page.getByText("Already exported for sample.mp4")).toBeVisible();
   await expect(page.getByText("320 × 180 · 24 fps · 0.5 Mbps")).toBeVisible();
@@ -142,12 +174,12 @@ test("cancels an in-progress conversion and returns to the settings", async ({ p
     };
   });
   await page.goto(".");
-  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
-  await page.getByRole("button", { name: "Compress video" }).click();
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
+  await page.getByRole("button", { name: "Convert video" }).click();
 
-  await expect(page.getByText("Compressing video")).toBeVisible();
+  await expect(page.getByText("Converting media")).toBeVisible();
   await page.getByRole("button", { name: "Cancel" }).click();
 
-  await expect(page.getByRole("button", { name: "Compress video" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Video ready" })).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Convert video" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Media ready" })).not.toBeVisible();
 });
