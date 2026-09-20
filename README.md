@@ -43,7 +43,7 @@ Production changes get a Changeset. Run `npm run changeset`, select the semver b
 
 For changes that do not need a release, use `npm run changeset -- --empty`.
 
-Repository administrators must enable **Allow GitHub Actions to create and approve pull requests** in GitHub Actions settings so the release workflow can open its version pull request.
+The repository allows GitHub Actions to approve pull request reviews. The release workflow declares the write permissions it needs to open the version pull request.
 
 ## Planning
 
