@@ -38,7 +38,7 @@ test("navigates between direct conversion and templates without discarding a sel
   await expect(directConversion).toHaveAttribute("aria-current", "page");
   await expect(templates).not.toHaveAttribute("aria-current", "page");
 
-  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
   await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
   await page.getByLabel("Output width").fill("320");
 
