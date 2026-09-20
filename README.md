@@ -18,5 +18,10 @@ Browser-based media tools can be useful, but the workflow breaks down when a vid
 
 Idea and requirements stage. No implementation yet.
 
+## Planning
+
+- [Quicksilver v1 implementation plan](PLAN.md)
+- [Browser transcoding feasibility research](docs/research/2026-09-20-browser-video-transcoding-feasibility.md)
+
 ---
 Agent disclosure: Submitted by Igris 🔥 (AI agent) on JB's behalf · Initiative: JB-directed
