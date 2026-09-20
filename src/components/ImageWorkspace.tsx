@@ -30,6 +30,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
   const [converting, setConverting] = createSignal(false);
   const [result, setResult] = createSignal<{ file: File; url: string }>();
   const [error, setError] = createSignal<string>();
+  const [aspectRatioLocked, setAspectRatioLocked] = createSignal(true);
   const valid = createMemo(() => Number.isInteger(settings().width) && Number.isInteger(settings().height) && settings().width >= 1 && settings().height >= 1 && settings().width <= 8192 && settings().height <= 8192);
   let disposed = false;
 
@@ -45,7 +46,18 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
   });
 
   const updateDimension = (key: "width" | "height", value: string) => {
-    setSettings((current) => ({ ...current, [key]: Math.round(Number(value)) }));
+    const dimension = Math.round(Number(value));
+    if (!aspectRatioLocked()) {
+      setSettings((current) => ({ ...current, [key]: dimension }));
+      return;
+    }
+
+    const counterpart = key === "width"
+      ? Math.round((dimension * props.source.height) / props.source.width)
+      : Math.round((dimension * props.source.width) / props.source.height);
+    setSettings((current) => key === "width"
+      ? { ...current, width: dimension, height: counterpart }
+      : { ...current, height: dimension, width: counterpart });
   };
 
   const convert = async () => {
@@ -98,7 +110,20 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
             <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#1769e0] uppercase">Output</p>
             <div class="mt-7 grid gap-5">
               <div><p class="text-sm text-[#65717f]">Output format</p><p class="mt-2 min-h-11 rounded-lg border border-[#cbd4de] bg-[#fbfcfd] px-3 py-2 font-mono text-base">{target().title} · {target().detail}</p></div>
-              <div class="grid grid-cols-2 gap-3"><NumberInput label="Output width" value={settings().width} onInput={(value) => updateDimension("width", value)} /><NumberInput label="Output height" value={settings().height} onInput={(value) => updateDimension("height", value)} /></div>
+              <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3">
+                <NumberInput label="Output width" value={settings().width} onInput={(value) => updateDimension("width", value)} />
+                <button
+                  type="button"
+                  class="mb-0 flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#cbd4de] bg-[#fbfcfd] text-[#65717f] hover:border-[#98a6b5] hover:text-[#18212b] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]"
+                  aria-label="Keep aspect ratio"
+                  aria-pressed={aspectRatioLocked() ? "true" : "false"}
+                  title={aspectRatioLocked() ? "Aspect ratio locked" : "Aspect ratio unlocked"}
+                  onClick={() => { setAspectRatioLocked((locked) => !locked); }}
+                >
+                  <ChainIcon />
+                </button>
+                <NumberInput label="Output height" value={settings().height} onInput={(value) => updateDimension("height", value)} />
+              </div>
               <Show when={format() === "image/jpeg"}><NumberInput label="JPEG quality" value={settings().quality} min={1} max={100} onInput={(value) => setSettings((current) => ({ ...current, quality: Number(value) }))} /></Show>
             </div>
           </div>
@@ -120,4 +145,8 @@ function Metric(props: { label: string; value: string }) {
 
 function NumberInput(props: { label: string; value: number; min?: number; max?: number; onInput: (value: string) => void }) {
   return <label class="block"><span class="text-sm text-[#65717f]">{props.label}</span><input class="mt-2 min-h-11 w-full rounded-lg border border-[#cbd4de] bg-[#fbfcfd] px-3 font-mono text-base" type="number" aria-label={props.label} value={props.value} min={props.min ?? 1} max={props.max ?? 8192} onInput={(event) => props.onInput(event.currentTarget.value)} /></label>;
+}
+
+function ChainIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15" /><path d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15" /></svg>;
 }

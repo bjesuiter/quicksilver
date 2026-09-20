@@ -291,3 +291,24 @@ test("converts a PNG image to JPEG", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("download", "pixel-quicksilver.jpg");
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("href", /^blob:/);
 });
+
+test("locks image output dimensions to the source aspect ratio by default", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.createImageBitmap = async () => ({ width: 2, height: 1, close() {} }) as unknown as ImageBitmap;
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "wide.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /JPEG image/ }).click();
+
+  const aspectRatioToggle = page.getByRole("button", { name: "Keep aspect ratio" });
+  await expect(aspectRatioToggle).toHaveAttribute("aria-pressed", "true");
+  await page.getByLabel("Output width").fill("400");
+  await expect(page.getByLabel("Output height")).toHaveValue("200");
+
+  await aspectRatioToggle.click();
+  await expect(aspectRatioToggle).toHaveAttribute("aria-pressed", "false");
+  await page.getByLabel("Output width").fill("300");
+  await expect(page.getByLabel("Output height")).toHaveValue("200");
+  await page.getByLabel("Output height").fill("100");
+  await expect(page.getByLabel("Output width")).toHaveValue("300");
+});
