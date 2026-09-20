@@ -37,6 +37,14 @@ npm run test:e2e -- --project=chromium
 
 The full GitHub Actions suite also runs the mobile Chromium and mobile WebKit projects before deploying `dist/` to GitHub Pages.
 
+## Releases
+
+Production changes get a Changeset. Run `npm run changeset`, select the semver bump, and describe the user-facing change. After the pull request merges, the release workflow collects pending Changesets into a version pull request. Merging that pull request updates `package.json` and `CHANGELOG.md`, then deploys the new version to GitHub Pages.
+
+For changes that do not need a release, use `npm run changeset -- --empty`.
+
+Repository administrators must enable **Allow GitHub Actions to create and approve pull requests** in GitHub Actions settings so the release workflow can open its version pull request.
+
 ## Planning
 
 - [Quicksilver v1 implementation plan](PLAN.md)
