@@ -1,5 +1,13 @@
 # quicksilver
 
+## 0.2.1
+
+### Patch Changes
+
+- f3471e4: Show “Local Media Converter” beside the Quicksilver header.
+- 4a8940e: Keep the Local Media Converter header subtitle visible beside the brand on mobile.
+- bf2b06a: Improve primary navigation tab readability and layout.
+
 ## 0.2.0
 
 ### Minor Changes
