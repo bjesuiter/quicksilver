@@ -66,6 +66,7 @@ export function App() {
               Q
             </span>
             Quicksilver
+            <span class="text-sm font-normal tracking-normal text-[#65717f]">Local Media Converter</span>
           </a>
           <div class="contents sm:flex sm:items-center sm:gap-6">
             <nav aria-label="Primary" class="order-3 grid w-full grid-cols-2 gap-1 rounded-lg border border-[#d9e0e8] bg-white p-1 text-sm sm:order-none sm:flex sm:w-auto">
