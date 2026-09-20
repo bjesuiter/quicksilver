@@ -35,7 +35,9 @@ npm run build
 npm run test:e2e -- --project=chromium
 ```
 
-The full GitHub Actions suite also runs the mobile Chromium and mobile WebKit projects before deploying `dist/` to GitHub Pages.
+For pull requests without a local test declaration, GitHub Actions also runs the mobile Chromium and mobile WebKit projects. Every release push rebuilds `dist/` before GitHub Pages deploys it.
+
+If you run the full suite locally before opening or merging a pull request, use `npm run test:e2e:attest`. It requires an authenticated `gh` CLI token that can write commit statuses. On a clean tree, it records a `quicksilver/local-e2e` status on `HEAD`; pull-request CI then skips its duplicate browser run. This is a developer declaration for speed, not a replacement for the GitHub-hosted build or deploy checks.
 
 ## Releases
 

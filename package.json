@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "test:e2e": "bash scripts/test-e2e.sh",
+    "test:e2e:attest": "npm run test:e2e && node scripts/attest-e2e.mjs",
     "test:e2e:update": "bash scripts/test-e2e.sh --update-snapshots"
   },
   "dependencies": {
