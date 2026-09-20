@@ -9,8 +9,8 @@
     "generate:pwa-assets": "pwa-assets-generator",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
-    "test:e2e": "playwright test",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test:e2e": "bash scripts/test-e2e.sh",
+    "test:e2e:update": "bash scripts/test-e2e.sh --update-snapshots"
   },
   "dependencies": {
     "@solidjs/web": "2.0.0-rc.9",
@@ -23,6 +23,7 @@
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.10.1",
     "@vite-pwa/assets-generator": "1.0.4",
+    "portless": "^0.15.6",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
     "vite": "8.3.0",

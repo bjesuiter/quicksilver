@@ -23,14 +23,15 @@ test("shows the build version and links the commit to GitHub", async ({ page }) 
   );
 });
 
-test("publishes a project-path web manifest", async ({ page, request }) => {
+test("publishes a project-path web manifest", async ({ page }) => {
   await page.goto(".");
   const manifestPath = await page.locator('link[rel="manifest"]').getAttribute("href");
 
   expect(manifestPath).toBe("/quicksilver/manifest.webmanifest");
-  const response = await request.get(new URL(manifestPath!, page.url()).toString());
-  expect(response.ok()).toBe(true);
-  const manifest = await response.json();
+  const response = await page.goto(manifestPath!);
+  expect(response).not.toBeNull();
+  expect(response!.ok()).toBe(true);
+  const manifest = await response!.json();
   expect(manifest.start_url).toBe("/quicksilver/");
   expect(manifest.scope).toBe("/quicksilver/");
   expect(manifest.icons).toEqual(
