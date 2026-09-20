@@ -3,13 +3,17 @@ import { createSignal, onCleanup, Show } from "solid-js";
 import { commit, commitUrl, version } from "./buildInfo";
 import { CompressionWorkspace } from "./components/CompressionWorkspace";
 import { FilePicker } from "./components/FilePicker";
+import { ImageWorkspace } from "./components/ImageWorkspace";
 import { OutputTargetPicker } from "./components/OutputTargetPicker";
-import type { OutputTarget } from "./domain/media";
+import type { OutputTarget, SourceImage } from "./domain/media";
+import { isImageTarget } from "./domain/outputTarget";
+import { probeImage } from "./image/image";
 import { probeMedia, type MediaSession } from "./media/probe";
 import { UpdatePrompt } from "./pwa/UpdatePrompt";
 
 export function App() {
   const [session, setSession] = createSignal<MediaSession>();
+  const [image, setImage] = createSignal<SourceImage>();
   const [target, setTarget] = createSignal<OutputTarget>();
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal<string>();
@@ -21,6 +25,7 @@ export function App() {
     activeSession?.dispose();
     activeSession = undefined;
     setSession(undefined);
+    setImage(undefined);
     setTarget(undefined);
     setError(undefined);
   };
@@ -29,9 +34,13 @@ export function App() {
     reset();
     setBusy(true);
     try {
-      const next = await probeMedia(file);
-      activeSession = next;
-      setSession(next);
+      if (file.type.toLowerCase().startsWith("image/")) {
+        setImage(await probeImage(file));
+      } else {
+        const next = await probeMedia(file);
+        activeSession = next;
+        setSession(next);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The media could not be inspected.");
     } finally {
@@ -104,10 +113,17 @@ export function App() {
 
       <main class="mx-auto flex w-full flex-1 px-5 py-12 sm:px-8 sm:py-20">
         <div class={page() === "direct" ? "flex w-full items-center" : "hidden"} aria-hidden={page() !== "direct" ? "true" : "false"}>
-          <Show when={session()} fallback={<FilePicker busy={busy()} onSelect={selectFile} />} keyed>
+          <Show when={image()} fallback={<Show when={session()} fallback={<FilePicker busy={busy()} onSelect={selectFile} />} keyed>{(value) => (
+            <Show when={target()} fallback={<OutputTargetPicker source={value.source} onSelect={setTarget} onReset={reset} />}>
+              {(selectedTarget) => <CompressionWorkspace session={value} target={selectedTarget()} onReset={reset} />}
+            </Show>
+          )}</Show>} keyed>
             {(value) => (
-              <Show when={target()} fallback={<OutputTargetPicker source={value.source} onSelect={setTarget} onReset={reset} />}>
-                {(selectedTarget) => <CompressionWorkspace session={value} target={selectedTarget()} onReset={reset} />}
+              <Show when={target()} fallback={<OutputTargetPicker source={value} onSelect={setTarget} onReset={reset} />}>
+                {(selectedTarget) => {
+                  const selected = selectedTarget();
+                  return isImageTarget(selected) && <ImageWorkspace source={value} target={selected} onReset={reset} />;
+                }}
               </Show>
             )}
           </Show>

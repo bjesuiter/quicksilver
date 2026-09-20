@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import path from "node:path";
 
 const sampleVideo = path.join(import.meta.dirname, "../fixtures/sample.mp4");
+const samplePng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==", "base64");
 
 async function chooseDefaultVideoTarget(page: import("@playwright/test").Page) {
   await expect(page.getByRole("heading", { name: "Choose an output format" })).toBeVisible();
@@ -254,4 +255,24 @@ test("cancels an in-progress conversion and returns to the settings", async ({ p
 
   await expect(page.getByRole("button", { name: "Convert H.264 video" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Media ready" })).not.toBeVisible();
+});
+
+test("converts a PNG image to JPEG", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+
+  await expect(page.getByRole("heading", { name: "Choose an output format" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /JPEG image/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /PNG image/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /WebP image/ })).toBeVisible();
+  await page.getByRole("button", { name: /JPEG image/ }).click();
+  await expect(page.getByRole("heading", { name: "pixel.png" })).toBeVisible();
+  await expect(page.getByText("1 × 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("JPEG image · JPG · compact photos and sharing")).toBeVisible();
+  await page.getByRole("button", { name: "Convert image" }).click();
+
+  await expect(page.getByRole("heading", { name: "Image ready" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("download", "pixel-quicksilver.jpg");
+  await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("href", /^blob:/);
 });

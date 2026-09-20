@@ -1,8 +1,8 @@
-import type { OutputTarget, SourceMedia } from "../domain/media";
+import type { OutputTarget, SourceFile } from "../domain/media";
 import { outputTargetsFor } from "../domain/outputTarget";
 
 type OutputTargetPickerProps = {
-  source: SourceMedia;
+  source: SourceFile;
   onSelect: (target: OutputTarget) => void;
   onReset: () => void;
 };
@@ -19,7 +19,9 @@ export function OutputTargetPicker(props: OutputTargetPickerProps) {
           <p class="mt-4 max-w-2xl text-base leading-7 text-[#65717f] sm:text-lg">
             {props.source.mediaType === "video"
               ? "Keep video, switch codecs, or extract the audio."
-              : "Choose the format for your audio export."}
+              : props.source.mediaType === "audio"
+                ? "Choose the format for your audio export."
+                : "Choose the file type for your image export."}
           </p>
         </div>
         <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onReset}>
@@ -29,7 +31,7 @@ export function OutputTargetPicker(props: OutputTargetPickerProps) {
 
       <div class="mt-10 grid gap-3" role="list" aria-label="Output formats">
         {targets().map((target) => {
-          const unavailable = target.mediaType === "audio" && !props.source.hasAudio;
+          const unavailable = target.mediaType === "audio" && props.source.mediaType === "video" && !props.source.hasAudio;
           return (
             <button
               type="button"

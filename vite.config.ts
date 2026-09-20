@@ -42,7 +42,7 @@ export default defineConfig({
       manifest: {
         name: "Quicksilver",
         short_name: "Quicksilver",
-        description: "Convert media locally in your browser.",
+        description: "Convert media and images locally in your browser.",
         theme_color: "#f5f7fa",
         background_color: "#f5f7fa",
         display: "standalone",

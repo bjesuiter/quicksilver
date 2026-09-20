@@ -17,7 +17,7 @@ export function FilePicker(props: FilePickerProps) {
           Convert media on your device
         </h1>
         <p class="mt-6 max-w-xl text-base leading-7 text-[#65717f] sm:text-lg">
-          Convert supported video or audio to a compatible MP4 or M4A file. Your media never leaves this device.
+          Convert supported video, audio, or images locally. Your files never leave this device.
         </p>
       </div>
 
@@ -25,24 +25,24 @@ export function FilePicker(props: FilePickerProps) {
         <input
           class="absolute inset-0 cursor-pointer opacity-0"
           type="file"
-          accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/mp2t,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/ogg,audio/flac,.mp4,.m4v,.mov,.webm,.mkv,.ts,.mp3,.wav,.aac,.ogg,.oga,.flac"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,video/x-matroska,video/mp2t,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/ogg,audio/flac,.jpg,.jpeg,.png,.webp,.mp4,.m4v,.mov,.webm,.mkv,.ts,.mp3,.wav,.aac,.ogg,.oga,.flac"
           aria-label="Choose media"
           disabled={props.busy}
           onChange={selectFile}
         />
         <div class="flex items-start justify-between gap-6">
-          <span class="text-xl font-medium tracking-[-0.025em] sm:text-2xl">{props.busy ? "Inspecting media…" : "Choose media"}</span>
+          <span class="text-xl font-medium tracking-[-0.025em] sm:text-2xl">{props.busy ? "Inspecting file…" : "Choose a file"}</span>
           <span class="grid size-10 shrink-0 place-items-center rounded-full border border-[#d9e0e8] text-xl text-[#1769e0] transition-transform group-hover:translate-x-0.5" aria-hidden="true">
             {props.busy ? "·" : "+"}
           </span>
         </div>
         <div class="mt-8 flex flex-wrap items-end justify-between gap-3 text-sm text-[#65717f]">
           <span>Your media stays on this device.</span>
-          <span class="font-mono text-xs tracking-[0.08em] uppercase">Video or audio</span>
+          <span class="font-mono text-xs tracking-[0.08em] uppercase">Video, audio, or image</span>
         </div>
       </label>
 
-      <p class="mt-4 text-sm leading-6 text-[#7a8592]">Supports MP4, MOV, WebM, MKV, MP3, WAV, AAC, Ogg, FLAC, and MPEG-TS. Compatibility is checked before conversion.</p>
+      <p class="mt-4 text-sm leading-6 text-[#7a8592]">Images: JPEG, PNG, WebP. Media: MP4, MOV, WebM, MKV, MP3, WAV, AAC, Ogg, FLAC, and MPEG-TS. Compatibility is checked before conversion.</p>
     </section>
   );
 }

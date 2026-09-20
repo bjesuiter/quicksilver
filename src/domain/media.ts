@@ -15,6 +15,15 @@ export type SourceMedia = {
   canDecode: boolean;
 };
 
+export type SourceImage = {
+  mediaType: "image";
+  file: File;
+  width: number;
+  height: number;
+};
+
+export type SourceFile = SourceMedia | SourceImage;
+
 export type OutputSettings = {
   target: OutputTarget;
   width: number;
@@ -23,4 +32,5 @@ export type OutputSettings = {
   videoBitrate: number;
 };
 
-export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a";
+export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "jpeg" | "png" | "webp";
+export type ImageTarget = Extract<OutputTarget, "jpeg" | "png" | "webp">;
