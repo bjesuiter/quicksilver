@@ -8,7 +8,7 @@ export type OutputStorage = {
   cleanup: () => Promise<void>;
 };
 
-export async function createOutputStorage(estimatedBytes: number): Promise<OutputStorage> {
+export async function createOutputStorage(estimatedBytes: number, extension: string): Promise<OutputStorage> {
   if (estimatedBytes < IN_MEMORY_LIMIT) {
     const target = new BufferTarget();
     return {
@@ -32,7 +32,7 @@ export async function createOutputStorage(estimatedBytes: number): Promise<Outpu
   }
 
   const root = await navigator.storage.getDirectory();
-  const temporaryName = `.quicksilver-${crypto.randomUUID()}.mp4`;
+  const temporaryName = `.quicksilver-${crypto.randomUUID()}.${extension}`;
   const handle = await root.getFileHandle(temporaryName, { create: true });
   const writable = await handle.createWritable();
   const target = new StreamTarget(writable as unknown as WritableStream<StreamTargetChunk>, {
