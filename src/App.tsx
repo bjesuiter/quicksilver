@@ -72,32 +72,35 @@ export function App() {
             Quicksilver
             <span class="shrink-0 whitespace-nowrap text-xs font-normal tracking-normal text-[#65717f]">Local Media Converter</span>
           </a>
-          <div class="contents sm:flex sm:items-center sm:gap-6">
-            <nav aria-label="Primary" class="order-3 grid w-full grid-cols-2 gap-1 rounded-lg border border-[#d9e0e8] bg-white p-1 text-sm sm:order-none sm:flex sm:w-auto">
-              <a
-                class={navClass(page() === "direct")}
-                href={pageHref("direct")}
-                aria-current={page() === "direct" ? "page" : undefined}
-                onClick={(event) => navigate("direct", event)}
-              >
-                Direct conversion
-              </a>
-              <a
-                class={navClass(page() === "templates")}
-                href={pageHref("templates")}
-                aria-current={page() === "templates" ? "page" : undefined}
-                onClick={(event) => navigate("templates", event)}
-              >
-                Templates
-              </a>
-            </nav>
-            <span class="hidden items-center gap-2 text-sm text-[#65717f] sm:flex">
-              <span class="size-1.5 rounded-full bg-[#2f9e67]" aria-hidden="true" />
-              Local only
-            </span>
-          </div>
+          <span class="hidden items-center gap-2 text-sm text-[#65717f] sm:flex">
+            <span class="size-1.5 rounded-full bg-[#2f9e67]" aria-hidden="true" />
+            Local only
+          </span>
         </div>
       </header>
+
+      <nav aria-label="Primary" class="border-b border-[#d9e0e8] bg-white">
+        <div class="mx-auto w-full max-w-5xl px-5 py-3 sm:px-8 sm:py-4">
+          <div class="grid w-full grid-cols-2 rounded-xl border border-[#d9e0e8] bg-[#f5f7fa] p-1.5 text-sm sm:text-base">
+            <a
+              class={navClass(page() === "direct")}
+              href={pageHref("direct")}
+              aria-current={page() === "direct" ? "page" : undefined}
+              onClick={(event) => navigate("direct", event)}
+            >
+              Direct conversion
+            </a>
+            <a
+              class={navClass(page() === "templates")}
+              href={pageHref("templates")}
+              aria-current={page() === "templates" ? "page" : undefined}
+              onClick={(event) => navigate("templates", event)}
+            >
+              Templates
+            </a>
+          </div>
+        </div>
+      </nav>
 
       <main class="mx-auto flex w-full flex-1 px-5 py-12 sm:px-8 sm:py-20">
         <div class={page() === "direct" ? "flex w-full items-center" : "hidden"} aria-hidden={page() !== "direct" ? "true" : "false"}>
@@ -145,7 +148,7 @@ function pageHref(page: Page): string {
 }
 
 function navClass(active: boolean): string {
-  return `rounded-md px-2.5 py-1.5 text-center font-medium transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0] ${active ? "bg-[#1769e0] text-white" : "text-[#52606e] hover:bg-[#edf1f5] hover:text-[#18212b]"}`;
+  return `rounded-lg px-3 py-2.5 text-center font-semibold transition-[background-color,color,transform] duration-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0] active:scale-[0.99] ${active ? "bg-[#1769e0] text-white shadow-[0_1px_2px_rgba(17,74,158,0.28)]" : "text-[#52606e] hover:bg-white hover:text-[#18212b]"}`;
 }
 
 function TemplatesPage(props: { onNavigate: (event: MouseEvent) => void }) {
