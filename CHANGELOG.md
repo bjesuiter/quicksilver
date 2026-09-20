@@ -1,5 +1,11 @@
 # quicksilver
 
+## 0.3.3
+
+### Patch Changes
+
+- f3b19e1: Improve the release deployment workflow.
+
 ## 0.3.2
 
 ### Patch Changes
