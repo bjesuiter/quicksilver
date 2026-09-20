@@ -8,6 +8,7 @@ import { convertImage, type ImageConversionSettings, type ImageFormat } from "..
 type ImageWorkspaceProps = {
   source: SourceImage;
   target: ImageTarget;
+  onChangeTarget: () => void;
   onReset: () => void;
 };
 
@@ -81,7 +82,10 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
           <h1 id="image-name" class="max-w-3xl truncate text-3xl font-semibold tracking-[-0.045em] sm:text-5xl" title={props.source.file.name}>{props.source.file.name}</h1>
           <p class="mt-3 text-sm text-[#65717f]">{formatBytes(props.source.file.size)} · {props.source.width} × {props.source.height} · {props.source.file.type.replace("image/", "").toUpperCase()}</p>
         </div>
-        <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onReset}>Choose another</button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onChangeTarget}>Change output format</button>
+          <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onReset}>Choose another</button>
+        </div>
       </div>
 
       <Show when={result()} fallback={

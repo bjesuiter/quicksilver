@@ -124,6 +124,19 @@ test("asks for an output format after selecting a video", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Convert VP9 video" })).toBeEnabled();
 });
 
+test("returns to output format selection without replacing the source file", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
+  await chooseDefaultVideoTarget(page);
+
+  await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
+  await page.getByRole("button", { name: "Change output format" }).click();
+  await expect(page.getByRole("heading", { name: "Choose an output format" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /WebP image/ })).not.toBeVisible();
+  await page.getByRole("button", { name: /VP9 video/ }).click();
+  await expect(page.getByRole("button", { name: "Convert VP9 video" })).toBeEnabled();
+});
+
 test("extracts video audio into an M4A export", async ({ page }) => {
   await page.addInitScript(() => {
     window.__QUICKSILVER_TEST_TRANSCODER__ = async ({ input, outputName }) => new File([input], outputName, { type: "audio/mp4" });

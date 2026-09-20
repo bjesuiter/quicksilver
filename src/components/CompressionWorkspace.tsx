@@ -11,6 +11,7 @@ import { createConversionJob, type ConversionJob } from "../media/transcode";
 type CompressionWorkspaceProps = {
   session: MediaSession;
   target: OutputTarget;
+  onChangeTarget: () => void;
   onReset: () => void;
 };
 
@@ -147,9 +148,14 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
             {formatBytes(source().fileSize)} · {formatDuration(source().duration)} · {source().codec.toUpperCase()}
           </p>
         </div>
-        <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={resetWorkspace}>
-          Choose another
-        </button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onChangeTarget}>
+            Change output format
+          </button>
+          <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={resetWorkspace}>
+            Choose another
+          </button>
+        </div>
       </div>
 
       {source().hasHighDynamicRange && (

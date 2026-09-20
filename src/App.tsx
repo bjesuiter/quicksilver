@@ -113,14 +113,14 @@ export function App() {
         <div class={page() === "direct" ? "flex w-full items-center" : "hidden"} aria-hidden={page() !== "direct" ? "true" : "false"}>
           <Show when={image()} fallback={<Show when={session()} fallback={<FilePicker busy={busy()} onSelect={selectFile} />} keyed>{(value) => (
             <Show when={target()} fallback={<OutputTargetPicker source={value.source} onSelect={setTarget} onReset={reset} />}>
-              {(selectedTarget) => <CompressionWorkspace session={value} target={selectedTarget()} onReset={reset} />}
+              {(selectedTarget) => <CompressionWorkspace session={value} target={selectedTarget()} onChangeTarget={() => setTarget(undefined)} onReset={reset} />}
             </Show>
           )}</Show>} keyed>
             {(value) => (
               <Show when={target()} fallback={<OutputTargetPicker source={value} onSelect={setTarget} onReset={reset} />}>
                 {(selectedTarget) => {
                   const selected = selectedTarget();
-                  return isImageTarget(selected) && <ImageWorkspace source={value} target={selected} onReset={reset} />;
+                  return isImageTarget(selected) && <ImageWorkspace source={value} target={selected} onChangeTarget={() => setTarget(undefined)} onReset={reset} />;
                 }}
               </Show>
             )}
