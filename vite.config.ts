@@ -1,12 +1,21 @@
+import { execFileSync } from "node:child_process";
+
 import tailwindcss from "@tailwindcss/vite";
 import solid from "@solidjs/vite-plugin";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+import packageJson from "./package.json" with { type: "json" };
+
 const base = process.env.BASE_PATH ?? "/quicksilver/";
+const commit = process.env.GITHUB_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 
 export default defineConfig({
   base,
+  define: {
+    __QUICKSILVER_VERSION__: JSON.stringify(packageJson.version),
+    __QUICKSILVER_COMMIT__: JSON.stringify(commit)
+  },
   plugins: [
     solid(),
     tailwindcss(),

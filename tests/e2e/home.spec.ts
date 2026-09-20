@@ -12,6 +12,17 @@ test("offers a private local video picker", async ({ page }) => {
   await expect(page.getByText("Your video stays on this device.")).toBeVisible();
 });
 
+test("shows the build version and links the commit to GitHub", async ({ page }) => {
+  await page.goto(".");
+
+  const buildInfo = page.getByText(/^v\d+\.\d+\.\d+ · [0-9a-f]{7}$/);
+  await expect(buildInfo).toBeVisible();
+  await expect(buildInfo.getByRole("link")).toHaveAttribute(
+    "href",
+    /^https:\/\/github\.com\/bjesuiter\/quicksilver\/tree\/[0-9a-f]{40}$/
+  );
+});
+
 test("publishes a project-path web manifest", async ({ page, request }) => {
   await page.goto(".");
   const manifestPath = await page.locator('link[rel="manifest"]').getAttribute("href");

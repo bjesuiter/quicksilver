@@ -1,5 +1,6 @@
 import { createSignal, onCleanup, Show } from "solid-js";
 
+import { commit, commitUrl, version } from "./buildInfo";
 import { CompressionWorkspace } from "./components/CompressionWorkspace";
 import { FilePicker } from "./components/FilePicker";
 import { probeMedia, type MediaSession } from "./media/probe";
@@ -34,9 +35,10 @@ export function App() {
   };
 
   onCleanup(reset);
+  const shortCommit = commit.slice(0, 7);
 
   return (
-    <div class="min-h-dvh bg-[#f5f7fa] text-[#18212b]">
+    <div class="flex min-h-dvh flex-col bg-[#f5f7fa] text-[#18212b]">
       <header class="border-b border-[#d9e0e8]">
         <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-5 sm:px-8">
           <a class="flex items-center gap-2.5 font-semibold tracking-[-0.02em]" href={import.meta.env.BASE_URL}>
@@ -52,7 +54,7 @@ export function App() {
         </div>
       </header>
 
-      <main class="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-5xl items-center px-5 py-12 sm:px-8 sm:py-20">
+      <main class="mx-auto flex w-full flex-1 items-center px-5 py-12 sm:px-8 sm:py-20">
         <Show when={session()} fallback={<FilePicker busy={busy()} onSelect={selectFile} />} keyed>
           {(value) => <CompressionWorkspace session={value} onReset={reset} />}
         </Show>
@@ -64,6 +66,15 @@ export function App() {
           )}
         </Show>
       </main>
+      <footer class="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8 sm:pb-12">
+        <hr class="border-0 border-t border-[#d9e0e8]" />
+        <p class="mt-5 text-xs text-[#85909c]">
+          v{version} ·{" "}
+          <a class="underline decoration-[#c5ccd4] underline-offset-2 hover:text-[#65717f]" href={commitUrl}>
+            {shortCommit}
+          </a>
+        </p>
+      </footer>
       <UpdatePrompt />
     </div>
   );

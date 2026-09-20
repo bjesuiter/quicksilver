@@ -5,6 +5,9 @@ import type { OutputSettings } from "./domain/media";
 import type { ConversionProgress } from "./media/transcode";
 
 declare global {
+  const __QUICKSILVER_VERSION__: string;
+  const __QUICKSILVER_COMMIT__: string;
+
   interface Window {
     __QUICKSILVER_TEST_TRANSCODER__?: (options: {
       input: File;

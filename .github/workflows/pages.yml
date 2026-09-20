@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -32,6 +34,29 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Verify deploy version
+        if: github.event_name != 'pull_request'
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import current from "./package.json" with { type: "json" };
+
+          const previous = JSON.parse(execFileSync("git", ["show", "HEAD^:package.json"], { encoding: "utf8" }));
+          const parse = (version) => {
+            const match = version.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-.+)?(?:\+.+)?$/);
+            if (!match) throw new Error(`Expected a semantic version, received ${version}.`);
+            return match.slice(1, 4).map(Number);
+          };
+          const [currentMajor, currentMinor, currentPatch] = parse(current.version);
+          const [previousMajor, previousMinor, previousPatch] = parse(previous.version);
+          const increased =
+            currentMajor > previousMajor ||
+            (currentMajor === previousMajor && currentMinor > previousMinor) ||
+            (currentMajor === previousMajor && currentMinor === previousMinor && currentPatch > previousPatch);
+
+          if (!increased) throw new Error(`Deployment version must increase (${previous.version} → ${current.version}).`);
+          NODE
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
