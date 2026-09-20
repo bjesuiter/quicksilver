@@ -61,12 +61,12 @@ export function App() {
     <div class="flex min-h-dvh flex-col bg-[#f5f7fa] text-[#18212b]">
       <header class="border-b border-[#d9e0e8]">
         <div class="mx-auto flex min-h-16 max-w-5xl flex-wrap items-center justify-between gap-y-2 px-5 py-2 sm:h-16 sm:flex-nowrap sm:px-8 sm:py-0">
-          <a class="flex items-center gap-2.5 font-semibold tracking-[-0.02em]" href={import.meta.env.BASE_URL}>
+          <a class="flex items-center gap-2 font-semibold tracking-[-0.02em]" href={import.meta.env.BASE_URL}>
             <span class="grid size-7 place-items-center rounded-[7px] bg-[#1769e0] text-sm text-white" aria-hidden="true">
               Q
             </span>
             Quicksilver
-            <span class="text-sm font-normal tracking-normal text-[#65717f]">Local Media Converter</span>
+            <span class="shrink-0 whitespace-nowrap text-xs font-normal tracking-normal text-[#65717f]">Local Media Converter</span>
           </a>
           <div class="contents sm:flex sm:items-center sm:gap-6">
             <nav aria-label="Primary" class="order-3 grid w-full grid-cols-2 gap-1 rounded-lg border border-[#d9e0e8] bg-white p-1 text-sm sm:order-none sm:flex sm:w-auto">
