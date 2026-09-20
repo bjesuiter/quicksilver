@@ -30,6 +30,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
   const [result, setResult] = createSignal<{ file: File; url: string }>();
   const [error, setError] = createSignal<string>();
   const valid = createMemo(() => Number.isInteger(settings().width) && Number.isInteger(settings().height) && settings().width >= 1 && settings().height >= 1 && settings().width <= 8192 && settings().height <= 8192);
+  let disposed = false;
 
   const clearResult = () => {
     const current = result();
@@ -37,7 +38,10 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
     setResult(undefined);
   };
 
-  onCleanup(clearResult);
+  onCleanup(() => {
+    disposed = true;
+    clearResult();
+  });
 
   const updateDimension = (key: "width" | "height", value: string) => {
     setSettings((current) => ({ ...current, [key]: Math.round(Number(value)) }));
@@ -50,6 +54,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
     setConverting(true);
     try {
       const file = await convertImage(props.source, settings());
+      if (disposed) return;
       setResult({ file, url: URL.createObjectURL(file) });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The image could not be converted.");
