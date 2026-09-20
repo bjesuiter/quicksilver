@@ -1,14 +1,25 @@
 import { execFileSync } from "node:child_process";
+import { copyFileSync } from "node:fs";
+import { join } from "node:path";
 
 import tailwindcss from "@tailwindcss/vite";
 import solid from "@solidjs/vite-plugin";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 import packageJson from "./package.json" with { type: "json" };
 
 const base = process.env.BASE_PATH ?? "/quicksilver/";
 const commit = process.env.GITHUB_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+
+function githubPagesFallback(): Plugin {
+  return {
+    name: "github-pages-fallback",
+    writeBundle(options) {
+      if (options.dir) copyFileSync(join(options.dir, "index.html"), join(options.dir, "404.html"));
+    }
+  };
+}
 
 export default defineConfig({
   base,
@@ -66,6 +77,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
         navigateFallback: `${base}index.html`
       }
-    })
+    }),
+    githubPagesFallback()
   ]
 });

@@ -30,6 +30,36 @@ test("offers a private local media picker", async ({ page }) => {
   await expect(page.getByText("Your media stays on this device.")).toBeVisible();
 });
 
+test("navigates between direct conversion and templates without discarding a selected video", async ({ page }) => {
+  await page.goto(".");
+
+  const directConversion = page.getByRole("link", { name: "Direct conversion" });
+  const templates = page.getByRole("link", { name: "Templates" });
+  await expect(directConversion).toHaveAttribute("aria-current", "page");
+  await expect(templates).not.toHaveAttribute("aria-current", "page");
+
+  await page.getByLabel("Choose video").setInputFiles(sampleVideo);
+  await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
+  await page.getByLabel("Output width").fill("320");
+
+  await templates.click();
+  await expect(page).toHaveURL(/\/templates$/);
+  await expect(page.getByRole("heading", { name: "Conversion recipes are on the way\." })).toBeVisible();
+  await expect(templates).toHaveAttribute("aria-current", "page");
+
+  await page.getByRole("link", { name: "Go to Direct Conversion" }).click();
+  await expect(page).not.toHaveURL(/\/templates$/);
+  await expect(page.getByRole("heading", { name: "sample.mp4" })).toBeVisible();
+  await expect(page.getByLabel("Output width")).toHaveValue("320");
+});
+
+test("opens the templates page directly", async ({ page }) => {
+  await page.goto("templates");
+
+  await expect(page.getByRole("heading", { name: "Conversion recipes are on the way\." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Templates" })).toHaveAttribute("aria-current", "page");
+});
+
 test("shows the build version and links the commit to GitHub", async ({ page }) => {
   await page.goto(".");
 
