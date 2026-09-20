@@ -1,5 +1,11 @@
 # quicksilver
 
+## 0.3.0
+
+### Minor Changes
+
+- da3bea0: Add local JPEG, PNG, and WebP image conversion with selectable output formats.
+
 ## 0.2.1
 
 ### Patch Changes
