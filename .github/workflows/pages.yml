@@ -20,8 +20,6 @@ jobs:
       should-deploy: ${{ steps.release.outputs.should-deploy }}
     permissions:
       contents: read
-      pages: write
-      id-token: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -61,27 +59,71 @@ jobs:
           process.stdout.write(`should-deploy=${increased}\n`);
           NODE
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
-
       - name: Type-check
         run: npm run typecheck
 
       - name: Build production PWA
         run: npm run build
 
+      - name: Upload Pages artifact
+        if: steps.release.outputs.should-deploy == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: pages-dist
+          path: dist
+          if-no-files-found: error
+
+  browser-tests:
+    needs: local-e2e
+    if: github.event_name == 'pull_request' && needs.local-e2e.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
       - name: Run browser tests
         run: npm run test:e2e
 
-      - name: Configure Pages
-        if: steps.release.outputs.should-deploy == 'true'
-        uses: actions/configure-pages@v5
+  local-e2e:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.attestation.outputs.should-run }}
+    permissions:
+      statuses: read
+    steps:
+      - name: Check local test declaration
+        id: attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node --input-type=module >> "$GITHUB_OUTPUT" <<'NODE'
+          import { execFileSync } from "node:child_process";
 
-      - name: Upload Pages artifact
-        if: steps.release.outputs.should-deploy == 'true'
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
+          const status = JSON.parse(execFileSync("gh", ["api", `repos/${process.env.GITHUB_REPOSITORY}/commits/${process.env.SHA}/status`], { encoding: "utf8" }));
+          const declared = status.statuses.some(({ context, state, creator }) =>
+            context === "quicksilver/local-e2e" &&
+            state === "success" &&
+            creator?.login === process.env.GITHUB_REPOSITORY_OWNER
+          );
+
+          process.stdout.write(`should-run=${!declared}\n`);
+          NODE
 
   deploy:
     if: needs.verify.outputs.should-deploy == 'true'
@@ -94,6 +136,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Download Pages artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: pages-dist
+          path: dist
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
