@@ -8,7 +8,7 @@ export type OutputTargetOption = {
   mimeType: string;
   mediaType: "video" | "audio" | "image";
   videoCodec?: "avc" | "vp9" | "av1";
-  audioCodec: "aac" | "opus" | "mp3";
+  audioCodec: "aac" | "opus" | "mp3" | "flac";
   beta?: boolean;
 };
 
@@ -61,6 +61,15 @@ const targets: Record<OutputTarget, OutputTargetOption> = {
     mediaType: "audio",
     audioCodec: "mp3"
   },
+  flac: {
+    id: "flac",
+    title: "FLAC audio",
+    detail: "FLAC · lossless compression",
+    extension: "flac",
+    mimeType: "audio/flac",
+    mediaType: "audio",
+    audioCodec: "flac"
+  },
   jpeg: {
     id: "jpeg",
     title: "JPEG image",
@@ -107,8 +116,8 @@ export function outputTarget(target: OutputTarget): OutputTargetOption {
 export function outputTargetsFor(source: SourceFile): OutputTargetOption[] {
   if (source.mediaType === "image") return [targets.jpeg, targets.png, targets.webp, targets.avif];
   return source.mediaType === "video"
-    ? [targets["avc-mp4"], targets["vp9-webm"], targets["av1-webm"], targets["aac-m4a"], targets.mp3]
-    : [targets["aac-m4a"], targets.mp3];
+    ? [targets["avc-mp4"], targets["vp9-webm"], targets["av1-webm"], targets["aac-m4a"], targets.mp3, targets.flac]
+    : [targets["aac-m4a"], targets.mp3, targets.flac];
 }
 
 export function isImageTarget(target: OutputTarget): target is ImageTarget {

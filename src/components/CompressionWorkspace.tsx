@@ -314,7 +314,7 @@ function AudioSourceSummary(props: {
       </dl>
       <Show
         when={isMp3()}
-        fallback={<p class="mt-7 text-sm leading-6 text-[#65717f]">{props.extracted ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps." : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility."}</p>}
+        fallback={<p class="mt-7 text-sm leading-6 text-[#65717f]">{audioOutputDescription(props.extracted, props.target)}</p>}
       >
         <div class="mt-7 max-w-sm">
           <CbrBitrateSelect value={props.audioBitrate} onChange={props.onAudioBitrateChange} />
@@ -343,6 +343,18 @@ function CbrBitrateSelect(props: { value: number; onChange: (value: string) => v
   );
 }
 
+function audioOutputDescription(extracted: boolean, target: OutputTarget): string {
+  if (target === "flac") {
+    return extracted
+      ? "The video track is removed. Audio is encoded as lossless FLAC with its source channels and sample rate."
+      : "Audio is encoded as lossless FLAC with its source channels and sample rate.";
+  }
+
+  return extracted
+    ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps."
+    : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.";
+}
+
 function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
   return (
     <aside class="mt-8 rounded-xl border border-[#cbd9ea] bg-[#f5f8fc] p-5" aria-labelledby="export-history-title">
@@ -355,6 +367,8 @@ function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
                 ? "AAC audio · M4A"
                 : record.settings.target === "mp3"
                   ? `MP3 audio · ${record.settings.audioBitrate / 1_000} kbit/s CBR`
+                : record.settings.target === "flac"
+                  ? "FLAC audio · lossless"
                   : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
             </span>
             <span class="text-xs text-[#65717f]">{formatBytes(record.outputSize)}</span>
