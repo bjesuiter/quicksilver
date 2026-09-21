@@ -1,5 +1,12 @@
 # quicksilver
 
+## 0.5.2
+
+### Patch Changes
+
+- 38dc309: Show source file details before selecting an output format.
+- fa96c35: Warn when image output dimensions upscale or stretch the source.
+
 ## 0.5.1
 
 ### Patch Changes
