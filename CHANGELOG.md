@@ -1,5 +1,11 @@
 # quicksilver
 
+## 0.3.4
+
+### Patch Changes
+
+- 4e122ff: Remove the home-page eyebrow label and restore the bolt header logo.
+
 ## 0.3.3
 
 ### Patch Changes
