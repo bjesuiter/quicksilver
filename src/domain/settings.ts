@@ -24,6 +24,7 @@ export function estimateOutputBytes(source: SourceMedia, settings: OutputSetting
   if (settings.target === "aac-m4a" || settings.target === "mp3") return (source.duration * settings.audioBitrate * 1.02) / 8;
   // FLAC is lossless, so there is no user-selected bitrate or reliable size estimate.
   if (settings.target === "flac") return source.fileSize;
+  if (settings.target === "wav") return source.duration * source.audioSampleRate * source.audioNumberOfChannels * 2 + 64;
   return (source.duration * (settings.videoBitrate + (source.hasAudio ? source.audioBitrate : 0)) * 1.02) / 8;
 }
 

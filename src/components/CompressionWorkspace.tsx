@@ -350,6 +350,12 @@ function audioOutputDescription(extracted: boolean, target: OutputTarget): strin
       : "Audio is encoded as lossless FLAC with its source channels and sample rate.";
   }
 
+  if (target === "wav") {
+    return extracted
+      ? "The video track is removed. Audio is encoded as lossless PCM WAV with its source channels and sample rate."
+      : "Audio is encoded as lossless PCM WAV with its source channels and sample rate.";
+  }
+
   return extracted
     ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps."
     : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.";
@@ -369,6 +375,8 @@ function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
                   ? `MP3 audio · ${record.settings.audioBitrate / 1_000} kbit/s CBR`
                 : record.settings.target === "flac"
                   ? "FLAC audio · lossless"
+                  : record.settings.target === "wav"
+                    ? "Lossless PCM audio · WAV"
                   : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
             </span>
             <span class="text-xs text-[#65717f]">{formatBytes(record.outputSize)}</span>

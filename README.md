@@ -16,7 +16,7 @@ Browser-based media tools can be useful, but the workflow breaks down when a vid
 
 ## Status
 
-Version 0.1 converts supported SDR video and audio locally. It reads MP4, MOV, WebM, MKV, MP3, WAV, AAC, Ogg, FLAC, and MPEG-TS media, then writes H.264 MP4 video or AAC M4A audio. The browser verifies the selected media's decode and output encode capabilities before conversion.
+Version 0.1 converts supported SDR video and audio locally. It reads MP4, MOV, WebM, MKV, MP3, WAV, AAC, Ogg, FLAC, and MPEG-TS media, then writes H.264 MP4 video, AAC M4A, MP3, FLAC, or lossless PCM WAV audio. WAV copies descriptive metadata into an ID3 chunk, including supported cover art; format-specific and unsupported tags are not guaranteed to survive byte-for-byte. The browser verifies the selected media's decode and output encode capabilities before conversion.
 
 HDR and Dolby Vision inputs are detected and blocked because version 0.1 does not have a verified color-preservation or tone-mapping path.
 

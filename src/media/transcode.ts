@@ -7,6 +7,7 @@ import {
   Mp4OutputFormat,
   Output,
   Quality,
+  WavOutputFormat,
   WebMOutputFormat
 } from "mediabunny";
 import { registerMp3Encoder } from "@mediabunny/mp3-encoder";
@@ -14,6 +15,7 @@ import { registerFlacEncoder } from "@mediabunny/flac-encoder";
 
 import type { OutputSettings } from "../domain/media";
 import { outputTarget } from "../domain/outputTarget";
+import { estimateOutputBytes } from "../domain/settings";
 import type { MediaSession } from "./probe";
 import { createOutputStorage } from "./targets";
 
@@ -29,6 +31,7 @@ export type ConversionJob = {
 };
 
 let mp3EncoderRegistered = false;
+const WAV_RIFF_MAX_BYTES = 2 ** 32;
 
 async function canEncodeMp3(numberOfChannels: number, sampleRate: number, quality: Quality): Promise<boolean> {
   const config = { numberOfChannels, sampleRate, quality };
@@ -68,6 +71,7 @@ export async function createConversionJob(
   const targetFormat = outputTarget(settings.target);
   const isAudio = targetFormat.mediaType === "audio";
   const isFlac = targetFormat.id === "flac";
+  const isWav = targetFormat.id === "wav";
   const videoQuality = isAudio ? undefined : new Quality({ bitrate: settings.videoBitrate, bitrateMode: "variable" });
   const audioQuality = new Quality({
     bitrate: targetFormat.audioCodec === "mp3" ? settings.audioBitrate : targetFormat.audioCodec === "opus" ? 128_000 : 192_000,
@@ -96,14 +100,14 @@ export async function createConversionJob(
     throw new Error(`This browser cannot encode ${targetFormat.title} with the selected settings.`);
   }
 
-  const estimatedBytes = isFlac
-    ? session.source.fileSize
-    : (session.source.duration * (isAudio ? settings.audioBitrate : settings.videoBitrate + (session.source.hasAudio ? session.source.audioBitrate : 0)) * 1.02) / 8;
+  const estimatedBytes = estimateOutputBytes(session.source, settings);
   const storage = await createOutputStorage(estimatedBytes, targetFormat.extension);
   const target = storage.target;
   const output = new Output({
     format: isFlac
       ? new FlacOutputFormat({ appendOnly: false })
+      : isWav
+        ? new WavOutputFormat({ large: estimatedBytes >= WAV_RIFF_MAX_BYTES, metadataFormat: "id3" })
       : targetFormat.id === "mp3"
       ? new Mp3OutputFormat({ xingHeader: true })
       : targetFormat.id === "avc-mp4" || targetFormat.id === "aac-m4a" ? new Mp4OutputFormat() : new WebMOutputFormat(),

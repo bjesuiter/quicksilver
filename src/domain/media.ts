@@ -35,5 +35,5 @@ export type OutputSettings = {
   audioBitrate: number;
 };
 
-export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "mp3" | "flac" | "jpeg" | "png" | "webp" | "avif";
+export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "mp3" | "flac" | "wav" | "jpeg" | "png" | "webp" | "avif";
 export type ImageTarget = Extract<OutputTarget, "jpeg" | "png" | "webp" | "avif">;

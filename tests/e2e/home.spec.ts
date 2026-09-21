@@ -119,6 +119,7 @@ test("asks for an output format after selecting a video", async ({ page }) => {
   await expect(page.getByRole("button", { name: /VP9 video/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /AV1 video/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Audio only/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /WAV audio/ })).toBeVisible();
 
   await page.getByRole("button", { name: /VP9 video/ }).click();
   await expect(page.getByText("VP9 video · WebM · efficient for the web")).toBeVisible();
@@ -193,6 +194,27 @@ test("extracts video audio into a lossless FLAC export", async ({ page }) => {
   await page.getByRole("button", { name: "Convert audio" }).click();
   await expect(page.getByRole("heading", { name: "Media ready" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Download file" })).toHaveAttribute("download", "sample-quicksilver.flac");
+});
+
+test("extracts video audio into a lossless WAV export", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
+  await page.getByRole("button", { name: /WAV audio/ }).click();
+
+  await expect(page.getByText("Lossless PCM · WAV · larger than FLAC")).toBeVisible();
+  await expect(page.getByText("The video track is removed. Audio is encoded as lossless PCM WAV with its source channels and sample rate.")).toBeVisible();
+  await page.getByRole("button", { name: "Convert audio" }).click();
+  const download = page.getByRole("link", { name: "Download file" });
+  await expect(download).toHaveAttribute("download", "sample-quicksilver.wav");
+  const header = await page.evaluate(
+    async (href) => Array.from(new Uint8Array(await (await fetch(href)).arrayBuffer()).slice(0, 36)),
+    await download.getAttribute("href")
+  );
+
+  expect(String.fromCharCode(...header.slice(0, 4))).toBe("RIFF");
+  expect(String.fromCharCode(...header.slice(8, 12))).toBe("WAVE");
+  expect(header[20]).toBe(1);
+  expect(header[34]).toBe(16);
 });
 
 test("reads video details and opens compression controls", async ({ page }) => {
