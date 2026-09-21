@@ -12,7 +12,6 @@ export function FilePicker(props: FilePickerProps) {
   return (
     <section class="w-full" aria-labelledby="page-title">
       <div class="max-w-2xl">
-        <p class="mb-4 font-mono text-xs font-medium tracking-[0.14em] text-[#1769e0] uppercase">Local media converter</p>
         <h1 id="page-title" class="text-[clamp(2.35rem,7vw,4.75rem)] leading-[0.96] font-semibold tracking-[-0.055em] text-balance">
           Convert media on your device
         </h1>
