@@ -70,6 +70,14 @@ export function App() {
     setPage(nextPage);
   };
 
+  const checkForUpdates = async (event: MouseEvent) => {
+    event.preventDefault();
+    if (!("serviceWorker" in navigator)) return;
+
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.update();
+  };
+
   return (
     <div class="flex min-h-dvh flex-col bg-[#f5f7fa] text-[#18212b]">
       <header class="border-b border-[#d9e0e8]">
@@ -137,12 +145,21 @@ export function App() {
       </main>
       <footer class="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8 sm:pb-12">
         <hr class="border-0 border-t border-[#d9e0e8]" />
-        <p class="mt-5 text-xs text-[#85909c]">
-          v{version} ·{" "}
-          <a class="underline decoration-[#c5ccd4] underline-offset-2 hover:text-[#65717f]" href={commitUrl}>
-            {shortCommit}
+        <div class="mt-5 flex items-center justify-between gap-4 text-xs text-[#85909c]">
+          <p>
+            v{version} ·{" "}
+            <a class="underline decoration-[#c5ccd4] underline-offset-2 hover:text-[#65717f]" href={commitUrl}>
+              {shortCommit}
+            </a>
+          </p>
+          <a
+            class="underline decoration-[#c5ccd4] underline-offset-2 hover:text-[#65717f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]"
+            href="#check-for-updates"
+            onClick={(event) => void checkForUpdates(event)}
+          >
+            Check for updates
           </a>
-        </p>
+        </div>
       </footer>
       <UpdatePrompt />
     </div>
