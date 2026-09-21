@@ -18,6 +18,7 @@ export function App() {
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal<string>();
   const [page, setPage] = createSignal<Page>(readPage());
+  const [checkingForUpdates, setCheckingForUpdates] = createSignal(false);
 
   let activeSession: MediaSession | undefined;
 
@@ -74,8 +75,13 @@ export function App() {
     event.preventDefault();
     if (!("serviceWorker" in navigator)) return;
 
-    const registration = await navigator.serviceWorker.getRegistration();
-    await registration?.update();
+    setCheckingForUpdates(true);
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      await registration?.update();
+    } finally {
+      setCheckingForUpdates(false);
+    }
   };
 
   return (
@@ -146,19 +152,30 @@ export function App() {
       <footer class="mx-auto w-full max-w-5xl px-5 pb-10 sm:px-8 sm:pb-12">
         <hr class="border-0 border-t border-[#d9e0e8]" />
         <div class="mt-5 flex items-center justify-between gap-4 text-xs text-[#85909c]">
-          <p>
-            v{version} ·{" "}
-            <a class="underline decoration-[#c5ccd4] underline-offset-2 hover:text-[#65717f]" href={commitUrl}>
-              {shortCommit}
+          <p class="flex items-center gap-1">
+            <span>v{version} ·</span>
+            <a
+              class={footerLinkClass}
+              href={commitUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`View commit ${shortCommit} on GitHub, opens in a new tab`}
+            >
+              <span>{shortCommit}</span>
+              <ExternalLinkIcon />
             </a>
           </p>
-          <a
-            class="underline decoration-[#c5ccd4] underline-offset-2 hover:text-[#65717f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]"
-            href="#check-for-updates"
+          <button
+            type="button"
+            class={footerLinkClass}
+            disabled={checkingForUpdates()}
             onClick={(event) => void checkForUpdates(event)}
           >
-            Check for updates
-          </a>
+            <Show when={checkingForUpdates()}>
+              <LoadingSpinner />
+            </Show>
+            {checkingForUpdates() ? "Checking for updates" : "Check for updates"}
+          </button>
         </div>
       </footer>
       <UpdatePrompt />
@@ -178,6 +195,24 @@ function pageHref(page: Page): string {
 
 function navClass(active: boolean): string {
   return `relative py-4 text-sm font-semibold transition-colors duration-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0] ${active ? "text-[#1769e0] after:absolute after:right-0 after:bottom-0 after:left-0 after:h-0.75 after:bg-[#1769e0]" : "text-[#65717f] hover:text-[#18212b]"}`;
+}
+
+const footerLinkClass = "inline-flex items-center gap-1 underline decoration-[#c5ccd4] underline-offset-2 transition-colors hover:text-[#65717f] active:text-[#1769e0] active:decoration-[#1769e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0] disabled:cursor-wait disabled:opacity-70";
+
+function ExternalLinkIcon() {
+  return (
+    <svg class="size-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <path d="M9.5 2.5h4v4M8.5 7.5l5-5M13.5 9.5v3a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3" />
+    </svg>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <svg class="size-3 animate-spin" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M14 8a6 6 0 1 1-6-6" />
+    </svg>
+  );
 }
 
 function TemplatesPage(props: { onNavigate: (event: MouseEvent) => void }) {

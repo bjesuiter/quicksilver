@@ -70,12 +70,39 @@ test("opens the templates page directly", async ({ page }) => {
 test("shows the build version and links the commit to GitHub", async ({ page }) => {
   await page.goto(".");
 
-  const buildInfo = page.getByText(/^v\d+\.\d+\.\d+ · [0-9a-f]{7}$/);
-  await expect(buildInfo).toBeVisible();
-  await expect(buildInfo.getByRole("link")).toHaveAttribute(
+  await expect(page.getByText(/^v\d+\.\d+\.\d+ ·$/)).toBeVisible();
+  const commitLink = page.getByRole("link", { name: /View commit [0-9a-f]{7} on GitHub, opens in a new tab/ });
+  await expect(commitLink).toHaveAttribute(
     "href",
     /^https:\/\/github\.com\/bjesuiter\/quicksilver\/tree\/[0-9a-f]{40}$/
   );
+  await expect(commitLink).toHaveAttribute("target", "_blank");
+  await expect(commitLink).toHaveAttribute("rel", "noreferrer");
+  await expect(commitLink).toHaveAccessibleName(/opens in a new tab/);
+});
+
+test("shows progress while checking for updates", async ({ page }) => {
+  await page.goto(".");
+  await page.evaluate(() => {
+    const testWindow = window as typeof window & { resolveUpdate?: () => void };
+    Object.defineProperty(navigator.serviceWorker, "getRegistration", {
+      configurable: true,
+      value: async () => ({
+        update: () => new Promise<void>((resolve) => {
+          testWindow.resolveUpdate = resolve;
+        })
+      })
+    });
+  });
+
+  const checkForUpdates = page.getByRole("button", { name: /Check(?:ing)? for updates/ });
+  await checkForUpdates.click();
+  await expect(checkForUpdates).toHaveText("Checking for updates");
+  await expect(checkForUpdates).toBeDisabled();
+  await expect(checkForUpdates.locator("svg")).toHaveClass(/animate-spin/);
+
+  await page.evaluate(() => (window as typeof window & { resolveUpdate?: () => void }).resolveUpdate?.());
+  await expect(checkForUpdates).toHaveText("Check for updates");
 });
 
 test("publishes a project-path web manifest", async ({ page }) => {
