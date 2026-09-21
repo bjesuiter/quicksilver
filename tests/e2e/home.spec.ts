@@ -114,6 +114,7 @@ test("asks for an output format after selecting a video", async ({ page }) => {
   await page.getByLabel("Choose media").setInputFiles(sampleVideo);
 
   await expect(page.getByRole("heading", { name: "Choose an output format" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose another source" })).toBeVisible();
   await expect(page.getByRole("button", { name: /H\.264 video/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /VP9 video/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /AV1 video/ })).toBeVisible();
@@ -121,6 +122,7 @@ test("asks for an output format after selecting a video", async ({ page }) => {
 
   await page.getByRole("button", { name: /VP9 video/ }).click();
   await expect(page.getByText("VP9 video · WebM · efficient for the web")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose another source" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Convert VP9 video" })).toBeEnabled();
 });
 
@@ -288,4 +290,78 @@ test("converts a PNG image to JPEG", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Image ready" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("download", "pixel-quicksilver.jpg");
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("href", /^blob:/);
+});
+
+test("offers AVIF as a beta image target", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+
+  const avif = page.getByRole("button", { name: /AVIF image/ });
+  await expect(avif).toBeVisible();
+  await expect(avif.getByText("Beta")).toBeVisible();
+  await avif.click();
+
+  await expect(page.getByText("AVIF image · AVIF · compact photos · no transparency")).toBeVisible();
+  await expect(page.getByLabel("Output quality")).toBeVisible();
+  await page.getByRole("button", { name: "Convert image" }).click();
+  await expect(page.getByRole("heading", { name: "Image ready" })).toBeVisible();
+  const download = page.getByRole("link", { name: "Download image" });
+  await expect(download).toHaveAttribute("download", "pixel-quicksilver.avif");
+  await expect(download.evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch((link as HTMLAnchorElement).href)).arrayBuffer());
+    return new TextDecoder().decode(bytes.slice(4, 12));
+  })).resolves.toBe("ftypavif");
+});
+
+test("locks image output dimensions to the source aspect ratio by default", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.createImageBitmap = async () => ({ width: 2, height: 1, close() {} }) as unknown as ImageBitmap;
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "wide.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /JPEG image/ }).click();
+
+  const aspectRatioToggle = page.getByRole("button", { name: "Keep aspect ratio" });
+  await expect(aspectRatioToggle).toHaveAttribute("aria-pressed", "true");
+  await page.getByLabel("Output width").fill("400");
+  await expect(page.getByLabel("Output height")).toHaveValue("200");
+
+  await aspectRatioToggle.click();
+  await expect(aspectRatioToggle).toHaveAttribute("aria-pressed", "false");
+  await page.getByLabel("Output width").fill("300");
+  await expect(page.getByLabel("Output height")).toHaveValue("200");
+  await page.getByLabel("Output height").fill("100");
+  await expect(page.getByLabel("Output width")).toHaveValue("300");
+});
+
+test("offers named quality levels for JPEG and sends the selected level to its encoder", async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+      (window as Window & { __quicksilverEncoderQuality?: number }).__quicksilverEncoderQuality = typeof quality === "number" ? quality : undefined;
+      return originalToBlob.call(this, callback, type, quality);
+    };
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /JPEG image/ }).click();
+
+  const quality = page.getByLabel("Output quality");
+  await expect(quality).toHaveValue("80");
+  await expect(quality.locator("option")).toHaveText(["Smaller file", "Balanced", "Best quality"]);
+  await quality.selectOption({ label: "Best quality" });
+  await page.getByRole("button", { name: "Convert image" }).click();
+  await expect(page.getByRole("heading", { name: "Image ready" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as Window & { __quicksilverEncoderQuality?: number }).__quicksilverEncoderQuality)).toBe(0.95);
+});
+
+test("shows quality levels for WebP but not lossless PNG", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /PNG image/ }).click();
+  await expect(page.getByLabel("Output quality")).not.toBeVisible();
+
+  await page.getByRole("button", { name: "Change output format" }).click();
+  await page.getByRole("button", { name: /WebP image/ }).click();
+  await expect(page.getByLabel("Output quality")).toBeVisible();
 });

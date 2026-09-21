@@ -25,7 +25,7 @@ export function OutputTargetPicker(props: OutputTargetPickerProps) {
           </p>
         </div>
         <button type="button" class="min-h-11 rounded-lg border border-[#cbd4de] bg-white px-4 text-sm font-medium hover:border-[#98a6b5] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]" onClick={props.onReset}>
-          Choose another
+          Choose another source
         </button>
       </div>
 
@@ -40,7 +40,10 @@ export function OutputTargetPicker(props: OutputTargetPickerProps) {
               onClick={() => props.onSelect(target.id)}
             >
               <span>
-                <span class="block text-lg font-semibold tracking-[-0.025em]">{target.title}</span>
+                <span class="flex flex-wrap items-center gap-2 text-lg font-semibold tracking-[-0.025em]">
+                  {target.title}
+                  {target.beta && <span class="rounded-full bg-[#fef0c7] px-2 py-0.5 font-mono text-[0.65rem] font-semibold tracking-[0.08em] text-[#7a4c00] uppercase">Beta</span>}
+                </span>
                 <span class="mt-1 block text-sm text-[#65717f]">{target.detail}</span>
                 {unavailable && <span class="mt-2 block text-sm text-[#7a8592]">Audio of source is silent</span>}
               </span>

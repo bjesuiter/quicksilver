@@ -32,5 +32,5 @@ export type OutputSettings = {
   videoBitrate: number;
 };
 
-export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "jpeg" | "png" | "webp";
-export type ImageTarget = Extract<OutputTarget, "jpeg" | "png" | "webp">;
+export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "jpeg" | "png" | "webp" | "avif";
+export type ImageTarget = Extract<OutputTarget, "jpeg" | "png" | "webp" | "avif">;
