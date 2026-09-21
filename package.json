@@ -16,6 +16,7 @@
     "test:e2e:update": "bash scripts/test-e2e.sh --update-snapshots"
   },
   "dependencies": {
+    "@mediabunny/mp3-encoder": "^1.58.1",
     "@silvia-odwyer/photon": "^0.3.3",
     "@solidjs/web": "2.0.0-rc.9",
     "@stacksjs/ts-avif": "^0.1.4",

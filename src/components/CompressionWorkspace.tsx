@@ -178,7 +178,18 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
         <span class="text-[#52606e]">Output format</span>
         <span class="font-mono font-medium text-[#18212b]">{target().title} · {target().detail}</span>
       </div>
-      <Show when={source().mediaType === "video" && !isAudioOutput()} fallback={<AudioSourceSummary source={source()} extracted={source().mediaType === "video"} />}>
+      <Show
+        when={source().mediaType === "video" && !isAudioOutput()}
+        fallback={
+          <AudioSourceSummary
+            source={source()}
+            extracted={source().mediaType === "video"}
+            target={target().id}
+            audioBitrate={settings().audioBitrate}
+            onAudioBitrateChange={(value) => updateNumber("audioBitrate", value)}
+          />
+        }
+      >
       <div class="mt-10 grid overflow-hidden rounded-xl border border-[#d9e0e8] bg-white lg:grid-cols-[1fr_auto_1fr]">
         <div class="p-6 sm:p-8">
           <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source</p>
@@ -284,7 +295,15 @@ function CompletedResult(props: {
   );
 }
 
-function AudioSourceSummary(props: { source: SourceMedia; extracted: boolean }) {
+function AudioSourceSummary(props: {
+  source: SourceMedia;
+  extracted: boolean;
+  target: OutputTarget;
+  audioBitrate: number;
+  onAudioBitrateChange: (value: string) => void;
+}) {
+  const isMp3 = () => props.target === "mp3";
+
   return (
     <div class="mt-10 rounded-xl border border-[#d9e0e8] bg-white p-6 sm:p-8">
       <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">{props.extracted ? "Audio export" : "Source audio"}</p>
@@ -293,8 +312,34 @@ function AudioSourceSummary(props: { source: SourceMedia; extracted: boolean }) 
         <Metric label="Audio codec" value={props.source.codec.toUpperCase()} testId="source-codec" />
         <Metric label="Audio bitrate" value={formatBitrate(props.source.audioBitrate)} testId="source-bitrate" />
       </dl>
-      <p class="mt-7 text-sm leading-6 text-[#65717f]">{props.extracted ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps." : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility."}</p>
+      <Show
+        when={isMp3()}
+        fallback={<p class="mt-7 text-sm leading-6 text-[#65717f]">{props.extracted ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps." : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility."}</p>}
+      >
+        <div class="mt-7 max-w-sm">
+          <CbrBitrateSelect value={props.audioBitrate} onChange={props.onAudioBitrateChange} />
+          <p class="mt-2 text-sm leading-6 text-[#65717f]">Constant bitrate is a target. Final file size is estimated and may vary slightly.</p>
+        </div>
+      </Show>
     </div>
+  );
+}
+
+function CbrBitrateSelect(props: { value: number; onChange: (value: string) => void }) {
+  const targets = [128_000, 192_000, 256_000, 320_000];
+
+  return (
+    <label class="block">
+      <span class="text-sm text-[#65717f]">CBR bitrate</span>
+      <select
+        class="mt-2 min-h-11 w-full rounded-lg border border-[#cbd4de] bg-[#fbfcfd] px-3 font-mono text-base outline-none focus:border-[#1769e0] focus:ring-3 focus:ring-[#1769e0]/15"
+        aria-label="CBR bitrate"
+        value={props.value}
+        onChange={(event) => props.onChange(event.currentTarget.value)}
+      >
+        {targets.map((bitrate) => <option value={bitrate}>{bitrate / 1_000} kbit/s</option>)}
+      </select>
+    </label>
   );
 }
 
@@ -306,7 +351,11 @@ function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
         {props.records.map((record) => (
           <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
             <span class="font-mono text-[#18212b]">
-              {record.settings.target === "aac-m4a" ? "AAC audio · M4A" : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
+              {record.settings.target === "aac-m4a"
+                ? "AAC audio · M4A"
+                : record.settings.target === "mp3"
+                  ? `MP3 audio · ${record.settings.audioBitrate / 1_000} kbit/s CBR`
+                  : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
             </span>
             <span class="text-xs text-[#65717f]">{formatBytes(record.outputSize)}</span>
           </li>

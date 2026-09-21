@@ -2,11 +2,13 @@ import {
   canEncodeAudio,
   canEncodeVideo,
   Conversion,
+  Mp3OutputFormat,
   Mp4OutputFormat,
   Output,
   Quality,
   WebMOutputFormat
 } from "mediabunny";
+import { registerMp3Encoder } from "@mediabunny/mp3-encoder";
 
 import type { OutputSettings } from "../domain/media";
 import { outputTarget } from "../domain/outputTarget";
@@ -23,6 +25,20 @@ export type ConversionJob = {
   execute: () => Promise<File>;
   cancel: () => Promise<void>;
 };
+
+let mp3EncoderRegistered = false;
+
+async function canEncodeMp3(numberOfChannels: number, sampleRate: number, quality: Quality): Promise<boolean> {
+  const config = { numberOfChannels, sampleRate, quality };
+  if (await canEncodeAudio("mp3", config)) return true;
+
+  if (!mp3EncoderRegistered) {
+    registerMp3Encoder();
+    mp3EncoderRegistered = true;
+  }
+
+  return canEncodeAudio("mp3", config);
+}
 
 export async function createConversionJob(
   session: MediaSession,
@@ -49,17 +65,22 @@ export async function createConversionJob(
 
   const targetFormat = outputTarget(settings.target);
   const isAudio = targetFormat.mediaType === "audio";
-  const quality = new Quality({ bitrate: isAudio ? 192_000 : settings.videoBitrate, bitrateMode: "variable" });
-  const audioQuality = new Quality({ bitrate: targetFormat.audioCodec === "opus" ? 128_000 : 192_000, bitrateMode: "variable" });
+  const videoQuality = isAudio ? undefined : new Quality({ bitrate: settings.videoBitrate, bitrateMode: "variable" });
+  const audioQuality = new Quality({
+    bitrate: targetFormat.audioCodec === "mp3" ? settings.audioBitrate : targetFormat.audioCodec === "opus" ? 128_000 : 192_000,
+    bitrateMode: targetFormat.audioCodec === "mp3" ? "constant" : "variable"
+  });
   if (session.source.hasAudio) {
-    const canEncodeAudioTrack = await canEncodeAudio(targetFormat.audioCodec, { quality: audioQuality });
+    const canEncodeAudioTrack = targetFormat.audioCodec === "mp3"
+      ? await canEncodeMp3(session.source.audioNumberOfChannels, session.source.audioSampleRate, audioQuality)
+      : await canEncodeAudio(targetFormat.audioCodec, { quality: audioQuality });
     if (!canEncodeAudioTrack) throw new Error(`This browser cannot encode ${targetFormat.audioCodec.toUpperCase()} audio. Try a browser with WebCodecs audio support.`);
   }
   const canEncode = !isAudio && await canEncodeVideo(targetFormat.videoCodec!, {
     width: settings.width,
     height: settings.height,
     frameRate: settings.frameRate,
-    quality,
+    quality: videoQuality!,
     hardwareAcceleration: "prefer-hardware"
   });
 
@@ -67,11 +88,13 @@ export async function createConversionJob(
     throw new Error(`This browser cannot encode ${targetFormat.title} with the selected settings.`);
   }
 
-  const estimatedBytes = (session.source.duration * (isAudio ? 192_000 : settings.videoBitrate + (session.source.hasAudio ? session.source.audioBitrate : 0)) * 1.02) / 8;
+  const estimatedBytes = (session.source.duration * (isAudio ? settings.audioBitrate : settings.videoBitrate + (session.source.hasAudio ? session.source.audioBitrate : 0)) * 1.02) / 8;
   const storage = await createOutputStorage(estimatedBytes, targetFormat.extension);
   const target = storage.target;
   const output = new Output({
-    format: targetFormat.id === "avc-mp4" || targetFormat.id === "aac-m4a" ? new Mp4OutputFormat() : new WebMOutputFormat(),
+    format: targetFormat.id === "mp3"
+      ? new Mp3OutputFormat({ xingHeader: true })
+      : targetFormat.id === "avc-mp4" || targetFormat.id === "aac-m4a" ? new Mp4OutputFormat() : new WebMOutputFormat(),
     target
   });
   const conversion = await Conversion.init({
@@ -84,7 +107,7 @@ export async function createConversionJob(
       height: settings.height,
       fit: "contain",
       frameRate: settings.frameRate,
-      quality,
+      quality: videoQuality!,
       hardwareAcceleration: "prefer-hardware",
       forceTranscode: true
     },

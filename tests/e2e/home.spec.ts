@@ -153,6 +153,32 @@ test("extracts video audio into an M4A export", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Download file" })).toHaveAttribute("download", "sample-quicksilver.m4a");
 });
 
+test("exports audio as MP3 at a selected CBR bitrate", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
+  await page.getByRole("button", { name: /MP3 audio/ }).click();
+
+  const bitrate = page.getByLabel("CBR bitrate");
+  await expect(bitrate).toHaveValue("192000");
+  await expect(bitrate.locator("option")).toHaveText(["128 kbit/s", "192 kbit/s", "256 kbit/s", "320 kbit/s"]);
+  await expect(page.getByText("Constant bitrate is a target.")).toBeVisible();
+
+  await bitrate.selectOption("320000");
+  await expect(bitrate).toHaveValue("320000");
+  await page.getByRole("button", { name: "Convert audio" }).click();
+  await expect(page.getByRole("heading", { name: "Media ready" })).toBeVisible();
+  const download = page.getByRole("link", { name: "Download file" });
+  await expect(download).toHaveAttribute("download", "sample-quicksilver.mp3");
+  await expect(download.evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch((link as HTMLAnchorElement).href)).arrayBuffer());
+    return (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) || (bytes[0] === 0xff && (bytes[1]! & 0xe0) === 0xe0);
+  })).resolves.toBe(true);
+
+  await page.getByRole("button", { name: "Convert again with different settings" }).click();
+  await expect(page.getByText("MP3 audio · 320 kbit/s CBR")).toBeVisible();
+});
+
 test("reads video details and opens compression controls", async ({ page }) => {
   await page.goto(".");
   await page.getByLabel("Choose media").setInputFiles(sampleVideo);

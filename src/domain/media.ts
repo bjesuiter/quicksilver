@@ -9,6 +9,8 @@ export type SourceMedia = {
   frameRate: number;
   videoBitrate: number;
   audioBitrate: number;
+  audioNumberOfChannels: number;
+  audioSampleRate: number;
   hasAudio: boolean;
   codec: string;
   hasHighDynamicRange: boolean;
@@ -30,7 +32,8 @@ export type OutputSettings = {
   height: number;
   frameRate: number;
   videoBitrate: number;
+  audioBitrate: number;
 };
 
-export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "jpeg" | "png" | "webp" | "avif";
+export type OutputTarget = "avc-mp4" | "vp9-webm" | "av1-webm" | "aac-m4a" | "mp3" | "jpeg" | "png" | "webp" | "avif";
 export type ImageTarget = Extract<OutputTarget, "jpeg" | "png" | "webp" | "avif">;

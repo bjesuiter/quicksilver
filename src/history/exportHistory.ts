@@ -49,5 +49,6 @@ function sameSettings(left: OutputSettings, right: OutputSettings): boolean {
   return left.width === right.width
     && left.height === right.height
     && left.frameRate === right.frameRate
-    && left.videoBitrate === right.videoBitrate;
+    && left.videoBitrate === right.videoBitrate
+    && left.audioBitrate === right.audioBitrate;
 }

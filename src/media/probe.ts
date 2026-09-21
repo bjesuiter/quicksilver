@@ -26,11 +26,13 @@ export async function probeMedia(file: File): Promise<MediaSession> {
     if (!videoTrack && !audioTrack) throw new Error("This media file does not contain a video or audio track.");
 
     if (!videoTrack) {
-      const [duration, audioStats, codec, canDecode] = await Promise.all([
+      const [duration, audioStats, codec, canDecode, audioNumberOfChannels, audioSampleRate] = await Promise.all([
         input.computeDuration(),
         audioTrack!.computePacketStats(),
         audioTrack!.getCodec(),
-        audioTrack!.canDecode()
+        audioTrack!.canDecode(),
+        audioTrack!.getNumberOfChannels(),
+        audioTrack!.getSampleRate()
       ]);
       const metadata = { duration, width: 0, height: 0, frameRate: 0, videoBitrate: 0, codec: codec ?? "unknown" };
       const identity = await fingerprintMedia(file, metadata);
@@ -44,6 +46,8 @@ export async function probeMedia(file: File): Promise<MediaSession> {
           fileSize: file.size,
           ...metadata,
           audioBitrate: audioStats.averageBitrate || 192_000,
+          audioNumberOfChannels,
+          audioSampleRate,
           hasAudio: true,
           hasHighDynamicRange: false,
           canDecode
@@ -60,7 +64,9 @@ export async function probeMedia(file: File): Promise<MediaSession> {
       codec,
       hasHighDynamicRange,
       canDecode,
-      audioStats
+      audioStats,
+      audioNumberOfChannels,
+      audioSampleRate
     ] = await Promise.all([
       videoTrack.getDisplayWidth(),
       videoTrack.getDisplayHeight(),
@@ -70,7 +76,9 @@ export async function probeMedia(file: File): Promise<MediaSession> {
       videoTrack.getCodec(),
       videoTrack.hasHighDynamicRange(),
       videoTrack.canDecode(),
-      audioTrack?.computePacketStats() ?? Promise.resolve(null)
+      audioTrack?.computePacketStats() ?? Promise.resolve(null),
+      audioTrack?.getNumberOfChannels() ?? Promise.resolve(0),
+      audioTrack?.getSampleRate() ?? Promise.resolve(0)
     ]);
 
     const metadata = {
@@ -93,6 +101,8 @@ export async function probeMedia(file: File): Promise<MediaSession> {
         fileSize: file.size,
         ...metadata,
         audioBitrate: audioStats?.averageBitrate ?? 192_000,
+        audioNumberOfChannels,
+        audioSampleRate,
         hasAudio: Boolean(audioTrack),
         hasHighDynamicRange,
         canDecode
