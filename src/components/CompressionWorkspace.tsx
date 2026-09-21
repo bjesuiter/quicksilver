@@ -178,7 +178,7 @@ export function CompressionWorkspace(props: CompressionWorkspaceProps) {
         <span class="text-[#52606e]">Output format</span>
         <span class="font-mono font-medium text-[#18212b]">{target().title} · {target().detail}</span>
       </div>
-      <Show when={source().mediaType === "video" && !isAudioOutput()} fallback={<AudioSourceSummary source={source()} extracted={source().mediaType === "video"} />}>
+      <Show when={source().mediaType === "video" && !isAudioOutput()} fallback={<AudioSourceSummary source={source()} target={target().id} extracted={source().mediaType === "video"} />}>
       <div class="mt-10 grid overflow-hidden rounded-xl border border-[#d9e0e8] bg-white lg:grid-cols-[1fr_auto_1fr]">
         <div class="p-6 sm:p-8">
           <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">Source</p>
@@ -284,7 +284,7 @@ function CompletedResult(props: {
   );
 }
 
-function AudioSourceSummary(props: { source: SourceMedia; extracted: boolean }) {
+function AudioSourceSummary(props: { source: SourceMedia; target: OutputTarget; extracted: boolean }) {
   return (
     <div class="mt-10 rounded-xl border border-[#d9e0e8] bg-white p-6 sm:p-8">
       <p class="font-mono text-xs font-medium tracking-[0.12em] text-[#65717f] uppercase">{props.extracted ? "Audio export" : "Source audio"}</p>
@@ -293,9 +293,21 @@ function AudioSourceSummary(props: { source: SourceMedia; extracted: boolean }) 
         <Metric label="Audio codec" value={props.source.codec.toUpperCase()} testId="source-codec" />
         <Metric label="Audio bitrate" value={formatBitrate(props.source.audioBitrate)} testId="source-bitrate" />
       </dl>
-      <p class="mt-7 text-sm leading-6 text-[#65717f]">{props.extracted ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps." : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility."}</p>
+      <p class="mt-7 text-sm leading-6 text-[#65717f]">{audioOutputDescription(props.extracted, props.target)}</p>
     </div>
   );
+}
+
+function audioOutputDescription(extracted: boolean, target: OutputTarget): string {
+  if (target === "flac") {
+    return extracted
+      ? "The video track is removed. Audio is encoded as lossless FLAC with its source channels and sample rate."
+      : "Audio is encoded as lossless FLAC with its source channels and sample rate.";
+  }
+
+  return extracted
+    ? "The video track is removed. Audio is converted to AAC in an M4A file at 192 kbps."
+    : "Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.";
 }
 
 function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
@@ -306,7 +318,11 @@ function ExportHistory(props: { fileName: string; records: ExportRecord[] }) {
         {props.records.map((record) => (
           <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
             <span class="font-mono text-[#18212b]">
-              {record.settings.target === "aac-m4a" ? "AAC audio · M4A" : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
+              {record.settings.target === "aac-m4a"
+                ? "AAC audio · M4A"
+                : record.settings.target === "flac"
+                  ? "FLAC audio · lossless"
+                  : `${record.settings.target === "vp9-webm" ? "VP9" : record.settings.target === "av1-webm" ? "AV1" : "H.264"} · ${record.settings.width} × ${record.settings.height} · ${formatFrameRate(record.settings.frameRate)} fps · ${formatMegabits(record.settings.videoBitrate)} Mbps`}
             </span>
             <span class="text-xs text-[#65717f]">{formatBytes(record.outputSize)}</span>
           </li>

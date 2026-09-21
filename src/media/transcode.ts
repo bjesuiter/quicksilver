@@ -2,11 +2,13 @@ import {
   canEncodeAudio,
   canEncodeVideo,
   Conversion,
+  FlacOutputFormat,
   Mp4OutputFormat,
   Output,
   Quality,
   WebMOutputFormat
 } from "mediabunny";
+import { registerFlacEncoder } from "@mediabunny/flac-encoder";
 
 import type { OutputSettings } from "../domain/media";
 import { outputTarget } from "../domain/outputTarget";
@@ -49,10 +51,19 @@ export async function createConversionJob(
 
   const targetFormat = outputTarget(settings.target);
   const isAudio = targetFormat.mediaType === "audio";
+  const isFlac = targetFormat.id === "flac";
   const quality = new Quality({ bitrate: isAudio ? 192_000 : settings.videoBitrate, bitrateMode: "variable" });
   const audioQuality = new Quality({ bitrate: targetFormat.audioCodec === "opus" ? 128_000 : 192_000, bitrateMode: "variable" });
+
+  // Browsers do not currently offer a native FLAC WebCodecs encoder. Register
+  // Mediabunny's libFLAC extension only when one is not already available.
+  if (isFlac && !(await canEncodeAudio("flac"))) registerFlacEncoder();
+
   if (session.source.hasAudio) {
-    const canEncodeAudioTrack = await canEncodeAudio(targetFormat.audioCodec, { quality: audioQuality });
+    const canEncodeAudioTrack = await canEncodeAudio(
+      targetFormat.audioCodec,
+      isFlac ? undefined : { quality: audioQuality }
+    );
     if (!canEncodeAudioTrack) throw new Error(`This browser cannot encode ${targetFormat.audioCodec.toUpperCase()} audio. Try a browser with WebCodecs audio support.`);
   }
   const canEncode = !isAudio && await canEncodeVideo(targetFormat.videoCodec!, {
@@ -67,11 +78,19 @@ export async function createConversionJob(
     throw new Error(`This browser cannot encode ${targetFormat.title} with the selected settings.`);
   }
 
-  const estimatedBytes = (session.source.duration * (isAudio ? 192_000 : settings.videoBitrate + (session.source.hasAudio ? session.source.audioBitrate : 0)) * 1.02) / 8;
+  const estimatedBytes = isFlac
+    ? session.source.fileSize
+    : (session.source.duration * (isAudio ? 192_000 : settings.videoBitrate + (session.source.hasAudio ? session.source.audioBitrate : 0)) * 1.02) / 8;
   const storage = await createOutputStorage(estimatedBytes, targetFormat.extension);
   const target = storage.target;
   const output = new Output({
-    format: targetFormat.id === "avc-mp4" || targetFormat.id === "aac-m4a" ? new Mp4OutputFormat() : new WebMOutputFormat(),
+    // appendOnly must remain false so FLAC's STREAMINFO block is finalized with
+    // the actual frame-size ranges and total sample count.
+    format: isFlac
+      ? new FlacOutputFormat({ appendOnly: false })
+      : targetFormat.id === "avc-mp4" || targetFormat.id === "aac-m4a"
+        ? new Mp4OutputFormat()
+        : new WebMOutputFormat(),
     target
   });
   const conversion = await Conversion.init({
@@ -88,7 +107,12 @@ export async function createConversionJob(
       hardwareAcceleration: "prefer-hardware",
       forceTranscode: true
     },
-    audio: session.source.hasAudio ? { codec: targetFormat.audioCodec, quality: audioQuality, forceTranscode: true } : { discard: true },
+    // Omitting a transform preserves the source channel count and sample rate.
+    audio: session.source.hasAudio
+      ? isFlac
+        ? { codec: "flac", forceTranscode: true }
+        : { codec: targetFormat.audioCodec, quality: audioQuality, forceTranscode: true }
+      : { discard: true },
     showWarnings: false
   });
 

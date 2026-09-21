@@ -153,6 +153,22 @@ test("extracts video audio into an M4A export", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Download file" })).toHaveAttribute("download", "sample-quicksilver.m4a");
 });
 
+test("extracts video audio into a lossless FLAC export", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__QUICKSILVER_TEST_TRANSCODER__ = async ({ input, outputName }) => new File([input], outputName, { type: "audio/flac" });
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles(sampleVideo);
+  await page.getByRole("button", { name: /FLAC audio/ }).click();
+
+  await expect(page.getByText("FLAC audio · FLAC · lossless compression")).toBeVisible();
+  await expect(page.getByText("The video track is removed. Audio is encoded as lossless FLAC with its source channels and sample rate.")).toBeVisible();
+  await expect(page.getByLabel("Target bitrate")).not.toBeVisible();
+  await page.getByRole("button", { name: "Convert audio" }).click();
+  await expect(page.getByRole("heading", { name: "Media ready" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download file" })).toHaveAttribute("download", "sample-quicksilver.flac");
+});
+
 test("reads video details and opens compression controls", async ({ page }) => {
   await page.goto(".");
   await page.getByLabel("Choose media").setInputFiles(sampleVideo);
@@ -184,6 +200,53 @@ test("opens an audio-only file as an audio conversion", async ({ page }) => {
   await expect(page.getByText("Source audio")).toBeVisible();
   await expect(page.getByText("Audio is converted to AAC in an M4A file at 192 kbps for broad compatibility.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Convert audio" })).toBeEnabled();
+});
+
+test("offers lossless FLAC for an audio source", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({
+    name: "tone.wav",
+    mimeType: "audio/wav",
+    buffer: silentWav()
+  });
+  await expect(page.getByRole("button", { name: /FLAC audio/ })).toBeVisible();
+  await page.getByRole("button", { name: /FLAC audio/ }).click();
+
+  await expect(page.getByText("Audio is encoded as lossless FLAC with its source channels and sample rate.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Convert audio" })).toBeEnabled();
+});
+
+test("writes a finalized, playable FLAC file", async ({ page }) => {
+  test.skip(test.info().project.name !== "chromium", "The WebKit test runtime does not decode this WAV fixture through WebCodecs.");
+  test.setTimeout(60_000);
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({
+    name: "tone.wav",
+    mimeType: "audio/wav",
+    buffer: silentWav()
+  });
+  await page.getByRole("button", { name: /FLAC audio/ }).click();
+  await page.getByRole("button", { name: "Convert audio" }).click();
+
+  await expect(page.getByRole("heading", { name: "Media ready" })).toBeVisible({ timeout: 45_000 });
+  const output = page.getByRole("link", { name: "Download file" });
+  const details = await output.evaluate(async (link) => {
+    const response = await fetch((link as HTMLAnchorElement).href);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const streamInfo = bytes.slice(8, 42);
+    const totalSamples = ((streamInfo[13] & 0x0f) * 2 ** 32) + (streamInfo[14] * 2 ** 24) + (streamInfo[15] * 2 ** 16) + (streamInfo[16] * 2 ** 8) + streamInfo[17];
+    const audio = document.createElement("audio");
+    audio.src = URL.createObjectURL(new Blob([bytes], { type: "audio/flac" }));
+    document.body.append(audio);
+    await new Promise<void>((resolve, reject) => {
+      audio.oncanplaythrough = () => resolve();
+      audio.onerror = () => reject(audio.error);
+    });
+    audio.remove();
+    return { header: new TextDecoder().decode(bytes.slice(0, 4)), totalSamples };
+  });
+
+  expect(details).toEqual({ header: "fLaC", totalSamples: 4_000 });
 });
 
 test("updates all output settings and validates the target", async ({ page }) => {
