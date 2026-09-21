@@ -292,6 +292,27 @@ test("converts a PNG image to JPEG", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute("href", /^blob:/);
 });
 
+test("offers AVIF as a beta image target", async ({ page }) => {
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+
+  const avif = page.getByRole("button", { name: /AVIF image/ });
+  await expect(avif).toBeVisible();
+  await expect(avif.getByText("Beta")).toBeVisible();
+  await avif.click();
+
+  await expect(page.getByText("AVIF image · AVIF · compact photos · no transparency")).toBeVisible();
+  await expect(page.getByLabel("Output quality")).toBeVisible();
+  await page.getByRole("button", { name: "Convert image" }).click();
+  await expect(page.getByRole("heading", { name: "Image ready" })).toBeVisible();
+  const download = page.getByRole("link", { name: "Download image" });
+  await expect(download).toHaveAttribute("download", "pixel-quicksilver.avif");
+  await expect(download.evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch((link as HTMLAnchorElement).href)).arrayBuffer());
+    return new TextDecoder().decode(bytes.slice(4, 12));
+  })).resolves.toBe("ftypavif");
+});
+
 test("locks image output dimensions to the source aspect ratio by default", async ({ page }) => {
   await page.addInitScript(() => {
     window.createImageBitmap = async () => ({ width: 2, height: 1, close() {} }) as unknown as ImageBitmap;

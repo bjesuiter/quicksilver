@@ -9,6 +9,7 @@ export type OutputTargetOption = {
   mediaType: "video" | "audio" | "image";
   videoCodec?: "avc" | "vp9" | "av1";
   audioCodec: "aac" | "opus";
+  beta?: boolean;
 };
 
 const targets: Record<OutputTarget, OutputTargetOption> = {
@@ -77,6 +78,16 @@ const targets: Record<OutputTarget, OutputTargetOption> = {
     mimeType: "image/webp",
     mediaType: "image",
     audioCodec: "aac"
+  },
+  avif: {
+    id: "avif",
+    title: "AVIF image",
+    detail: "AVIF · compact photos · no transparency",
+    extension: "avif",
+    mimeType: "image/avif",
+    mediaType: "image",
+    audioCodec: "aac",
+    beta: true
   }
 };
 
@@ -85,12 +96,12 @@ export function outputTarget(target: OutputTarget): OutputTargetOption {
 }
 
 export function outputTargetsFor(source: SourceFile): OutputTargetOption[] {
-  if (source.mediaType === "image") return [targets.jpeg, targets.png, targets.webp];
+  if (source.mediaType === "image") return [targets.jpeg, targets.png, targets.webp, targets.avif];
   return source.mediaType === "video"
     ? [targets["avc-mp4"], targets["vp9-webm"], targets["av1-webm"], targets["aac-m4a"]]
     : [targets["aac-m4a"]];
 }
 
 export function isImageTarget(target: OutputTarget): target is ImageTarget {
-  return target === "jpeg" || target === "png" || target === "webp";
+  return target === "jpeg" || target === "png" || target === "webp" || target === "avif";
 }

@@ -13,6 +13,7 @@ type ImageWorkspaceProps = {
 };
 
 const formatNames: Record<ImageFormat, string> = {
+  "image/avif": "AVIF",
   "image/jpeg": "JPEG",
   "image/png": "PNG",
   "image/webp": "WebP"
@@ -27,17 +28,20 @@ const qualityLevels = [
 export function ImageWorkspace(props: ImageWorkspaceProps) {
   const target = () => outputTarget(props.target);
   const format = () => target().mimeType as ImageFormat;
+  const initialDimensions = format() === "image/avif" ? fitAvifDimensions(props.source.width, props.source.height) : props.source;
   const [settings, setSettings] = createSignal<ImageConversionSettings>({
     format: format(),
-    width: props.source.width,
-    height: props.source.height,
+    width: initialDimensions.width,
+    height: initialDimensions.height,
     quality: 80
   });
   const [converting, setConverting] = createSignal(false);
   const [result, setResult] = createSignal<{ file: File; url: string }>();
   const [error, setError] = createSignal<string>();
   const [aspectRatioLocked, setAspectRatioLocked] = createSignal(true);
-  const valid = createMemo(() => Number.isInteger(settings().width) && Number.isInteger(settings().height) && settings().width >= 1 && settings().height >= 1 && settings().width <= 8192 && settings().height <= 8192);
+  const maxWidth = () => format() === "image/avif" ? 4096 : 8192;
+  const maxHeight = () => format() === "image/avif" ? 2304 : 8192;
+  const valid = createMemo(() => Number.isInteger(settings().width) && Number.isInteger(settings().height) && settings().width >= 1 && settings().height >= 1 && settings().width <= maxWidth() && settings().height <= maxHeight());
   let disposed = false;
 
   const clearResult = () => {
@@ -117,7 +121,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
             <div class="mt-7 grid gap-5">
               <div><p class="text-sm text-[#65717f]">Output format</p><p class="mt-2 min-h-11 rounded-lg border border-[#cbd4de] bg-[#fbfcfd] px-3 py-2 font-mono text-base">{target().title} · {target().detail}</p></div>
               <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3">
-                <NumberInput label="Output width" value={settings().width} onInput={(value) => updateDimension("width", value)} />
+                <NumberInput label="Output width" value={settings().width} max={maxWidth()} onInput={(value) => updateDimension("width", value)} />
                 <button
                   type="button"
                   class="mb-0 flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#cbd4de] bg-[#fbfcfd] text-[#65717f] hover:border-[#98a6b5] hover:text-[#18212b] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#1769e0]"
@@ -128,7 +132,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
                 >
                   <ChainIcon />
                 </button>
-                <NumberInput label="Output height" value={settings().height} onInput={(value) => updateDimension("height", value)} />
+                <NumberInput label="Output height" value={settings().height} max={maxHeight()} onInput={(value) => updateDimension("height", value)} />
               </div>
               <Show when={format() !== "image/png"}>
                 <label class="block">
@@ -151,7 +155,7 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
       </Show>
 
       <Show when={!result()}><div class="mt-6 flex items-center justify-between gap-5 rounded-xl bg-[#18212b] p-5 text-white sm:p-6"><div><p class="text-sm text-[#aeb8c4]">{converting() ? "Converting image" : "Output settings"}</p><p class="mt-1 font-mono text-2xl tracking-[-0.04em]">{formatNames[format()]}</p></div><button type="button" class="min-h-12 rounded-lg bg-[#2d7ff0] px-6 font-semibold text-white hover:bg-[#438cf2] disabled:cursor-not-allowed disabled:opacity-45" disabled={!valid() || converting()} onClick={convert}>{converting() ? "Converting…" : "Convert image"}</button></div></Show>
-      <Show when={!valid()}><p class="mt-3 text-sm text-[#b42318]">Enter dimensions from 1 to 8192 pixels.</p></Show>
+      <Show when={!valid()}><p class="mt-3 text-sm text-[#b42318]">Enter dimensions from 1 to {maxWidth()} × {maxHeight()} pixels.</p></Show>
       <Show when={error()}>{(message) => <p class="mt-4 rounded-lg border border-[#f0c8c4] bg-[#fff7f6] p-4 text-sm leading-6 text-[#8a271f]" role="alert">{message()}</p>}</Show>
     </section>
   );
@@ -167,4 +171,9 @@ function NumberInput(props: { label: string; value: number; min?: number; max?: 
 
 function ChainIcon() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15" /><path d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15" /></svg>;
+}
+
+function fitAvifDimensions(width: number, height: number) {
+  const scale = Math.min(1, 4096 / width, 2304 / height);
+  return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }

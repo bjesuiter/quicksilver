@@ -1,7 +1,7 @@
 import type { PhotonImage } from "@silvia-odwyer/photon";
 import type { SourceImage } from "../domain/media";
 
-export type ImageFormat = "image/jpeg" | "image/png" | "image/webp";
+export type ImageFormat = "image/avif" | "image/jpeg" | "image/png" | "image/webp";
 
 export type ImageConversionSettings = {
   format: ImageFormat;
@@ -11,6 +11,7 @@ export type ImageConversionSettings = {
 };
 
 const extensionFor = (format: ImageFormat) => ({
+  "image/avif": "avif",
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp"
@@ -55,7 +56,9 @@ export async function convertImage(source: SourceImage, settings: ImageConversio
 
     const bytes = settings.format === "image/png"
       ? output.get_bytes()
-      : await encodeLossyImage(output, settings.format, settings.quality);
+      : settings.format === "image/avif"
+        ? (await import("@stacksjs/ts-avif")).encode({ data: output.get_raw_pixels(), width: output.get_width(), height: output.get_height() }, { quality: settings.quality })
+        : await encodeLossyImage(output, settings.format, settings.quality);
     const baseName = source.file.name.replace(/\.[^.]+$/, "") || "image";
     const fileBytes = new Uint8Array(bytes.byteLength);
     fileBytes.set(bytes);

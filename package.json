@@ -17,6 +17,7 @@
   "dependencies": {
     "@silvia-odwyer/photon": "^0.3.3",
     "@solidjs/web": "2.0.0-rc.9",
+    "@stacksjs/ts-avif": "^0.1.4",
     "mediabunny": "1.58.1",
     "solid-js": "2.0.0-rc.9"
   },
