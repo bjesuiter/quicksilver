@@ -1,5 +1,11 @@
 # quicksilver
 
+## 0.5.1
+
+### Patch Changes
+
+- 80a2052: Clarify footer links and show update-check progress.
+
 ## 0.5.0
 
 ### Minor Changes
