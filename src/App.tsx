@@ -107,8 +107,8 @@ export function App() {
         </div>
       </nav>
 
-      <main class="mx-auto flex w-full flex-1 px-5 py-12 sm:px-8 sm:py-20">
-        <div class={page() === "direct" ? "flex w-full items-center" : "hidden"} aria-hidden={page() !== "direct" ? "true" : "false"}>
+      <main class="mx-auto flex w-full flex-1 px-5 py-6 sm:px-8 sm:py-20">
+        <div class={page() === "direct" ? "flex w-full items-start" : "hidden"} aria-hidden={page() !== "direct" ? "true" : "false"}>
           <Show when={image()} fallback={<Show when={session()} fallback={<FilePicker busy={busy()} onSelect={selectFile} />} keyed>{(value) => (
             <Show when={target()} fallback={<OutputTargetPicker source={value.source} onSelect={setTarget} onReset={reset} />}>
               {(selectedTarget) => <CompressionWorkspace session={value} target={selectedTarget()} onChangeTarget={() => setTarget(undefined)} onReset={reset} />}
