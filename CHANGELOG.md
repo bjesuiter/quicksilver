@@ -1,5 +1,17 @@
 # quicksilver
 
+## 0.5.0
+
+### Minor Changes
+
+- 994d0e0: Add lossless PCM WAV export for audio sources and video-audio extraction.
+- 142cf6e: Add MP3 audio exports with selectable CBR bitrate targets.
+
+### Patch Changes
+
+- cff98de: Add lossless FLAC audio export for audio sources and video audio extraction.
+- 159104d: Add a footer link to check for PWA updates.
+
 ## 0.4.1
 
 ### Patch Changes
