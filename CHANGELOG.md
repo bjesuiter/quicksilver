@@ -1,5 +1,17 @@
 # quicksilver
 
+## 0.4.0
+
+### Minor Changes
+
+- 91d6ba3: Add AVIF image export as a beta output format.
+- 7b589a1: Add an aspect-ratio lock for image output dimensions.
+- e292f20: Add selectable quality levels for lossy image conversions.
+
+### Patch Changes
+
+- a1b38e8: Clarify the source-selection action label.
+
 ## 0.3.4
 
 ### Patch Changes
