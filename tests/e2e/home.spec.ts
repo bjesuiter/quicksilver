@@ -439,10 +439,27 @@ test("locks image output dimensions to the source aspect ratio by default", asyn
 
   await aspectRatioToggle.click();
   await expect(aspectRatioToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText("Unlocked dimensions stretch or compress the image to the exact width and height. Quicksilver does not crop it or fit it within those bounds.")).toBeVisible();
   await page.getByLabel("Output width").fill("300");
   await expect(page.getByLabel("Output height")).toHaveValue("200");
   await page.getByLabel("Output height").fill("100");
   await expect(page.getByLabel("Output width")).toHaveValue("300");
+});
+
+test("warns when image output dimensions upscale the source", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.createImageBitmap = async () => ({ width: 2, height: 1, close() {} }) as unknown as ImageBitmap;
+  });
+  await page.goto(".");
+  await page.getByLabel("Choose media").setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: samplePng });
+  await page.getByRole("button", { name: /JPEG image/ }).click();
+
+  await page.getByRole("button", { name: "Keep aspect ratio" }).click();
+  await page.getByLabel("Output width").fill("3");
+  await expect(page.getByText("Output width is 3 px. The original image is 2 px wide, so this will upscale it and may reduce image quality.")).toBeVisible();
+
+  await page.getByLabel("Output height").fill("2");
+  await expect(page.getByText("Output height is 2 px. The original image is 1 px high, so this will upscale it and may reduce image quality.")).toBeVisible();
 });
 
 test("offers named quality levels for JPEG and sends the selected level to its encoder", async ({ page }) => {
