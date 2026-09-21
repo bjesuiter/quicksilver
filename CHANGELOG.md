@@ -1,5 +1,11 @@
 # quicksilver
 
+## 0.4.1
+
+### Patch Changes
+
+- dd27bb6: Align direct-conversion content to the top of its main area.
+
 ## 0.4.0
 
 ### Minor Changes
