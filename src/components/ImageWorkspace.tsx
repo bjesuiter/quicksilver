@@ -25,6 +25,13 @@ const qualityLevels = [
   { value: 95, label: "Best quality" }
 ] as const;
 
+type UpscaleWarning = {
+  dimension: "width" | "height";
+  original: number;
+  output: number;
+  direction: "wide" | "high";
+};
+
 export function ImageWorkspace(props: ImageWorkspaceProps) {
   const target = () => outputTarget(props.target);
   const format = () => target().mimeType as ImageFormat;
@@ -42,6 +49,13 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
   const maxWidth = () => format() === "image/avif" ? 4096 : 8192;
   const maxHeight = () => format() === "image/avif" ? 2304 : 8192;
   const valid = createMemo(() => Number.isInteger(settings().width) && Number.isInteger(settings().height) && settings().width >= 1 && settings().height >= 1 && settings().width <= maxWidth() && settings().height <= maxHeight());
+  const upscaleWarnings = createMemo(() => {
+    const current = settings();
+    const warnings: UpscaleWarning[] = [];
+    if (current.width > props.source.width) warnings.push({ dimension: "width", original: props.source.width, output: current.width, direction: "wide" });
+    if (current.height > props.source.height) warnings.push({ dimension: "height", original: props.source.height, output: current.height, direction: "high" });
+    return warnings;
+  });
   let disposed = false;
 
   const clearResult = () => {
@@ -134,6 +148,14 @@ export function ImageWorkspace(props: ImageWorkspaceProps) {
                 </button>
                 <NumberInput label="Output height" value={settings().height} max={maxHeight()} onInput={(value) => updateDimension("height", value)} />
               </div>
+              <Show when={!aspectRatioLocked()}>
+                <p class="rounded-lg border border-[#f0c96d] bg-[#fff9e8] p-3 text-sm leading-6 text-[#6d4b00]" role="status">Unlocked dimensions stretch or compress the image to the exact width and height. Quicksilver does not crop it or fit it within those bounds.</p>
+              </Show>
+              <Show when={upscaleWarnings().length > 0}>
+                <div class="rounded-lg border border-[#f0c96d] bg-[#fff9e8] p-3 text-sm leading-6 text-[#6d4b00]" role="status">
+                  {upscaleWarnings().map((warning) => <p>Output {warning.dimension} is {warning.output} px. The original image is {warning.original} px {warning.direction}, so this will upscale it and may reduce image quality.</p>)}
+                </div>
+              </Show>
               <Show when={format() !== "image/png"}>
                 <label class="block">
                   <span class="text-sm text-[#65717f]">Output quality</span>
