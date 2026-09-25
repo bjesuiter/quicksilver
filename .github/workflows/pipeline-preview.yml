@@ -1,0 +1,61 @@
+name: Deploy pipeline preview
+
+on:
+  push:
+    branches: [t3code/media-pipeline-workflow]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: pipeline-preview
+      url: https://${{ vars.HERENOW_SITE_SLUG }}.here.now/
+    steps:
+      - name: Check out Quicksilver
+        uses: actions/checkout@v6
+
+      - name: Check out pinned here.now publisher
+        uses: actions/checkout@v6
+        with:
+          repository: heredotnow/skill
+          ref: 0f60d2374d3c8c6ffda1ecad4c0af69f278f7f27
+          path: .herenow-publisher
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build root-scoped PWA
+        env:
+          BASE_PATH: /
+        run: npm run build
+
+      - name: Publish preview
+        env:
+          HERENOW_API_KEY: ${{ secrets.HERENOW_API_KEY }}
+          HERENOW_SITE_SLUG: ${{ vars.HERENOW_SITE_SLUG }}
+        run: |
+          .herenow-publisher/skills/here-now/scripts/publish.sh dist \
+            --slug "$HERENOW_SITE_SLUG" \
+            --spa \
+            --client github-actions/quicksilver
+
+      - name: Check deployed site
+        env:
+          HERENOW_SITE_SLUG: ${{ vars.HERENOW_SITE_SLUG }}
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 2 "https://${HERENOW_SITE_SLUG}.here.now/" > /dev/null

@@ -3,6 +3,7 @@ dist/
 dev-dist/
 test-results/
 playwright-report/
+.herenow/
 .DS_Store
 *.log
 *.tsbuildinfo
